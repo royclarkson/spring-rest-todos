@@ -1,0 +1,30 @@
+<!doctype html>
+<html data-debug>
+<head>
+    <title>Todos</title>
+    <script src="bower_components/rave/rave.js"></script>
+</head>
+<body data-bard>
+
+<section>
+    <h2>Your Todos</h2>
+
+    <form class="create-todo" data-on-submit="todos@controller.add">
+        <input name="description" placeholder="Add a todo" autofocus/>
+        <input name="complete" type="checkbox" disabled style="display: none"/>
+        <button type="submit">Add</button>
+    </form>
+
+    <section data-path="todos">
+        <ul>
+            <li data-list>
+                <input type="checkbox" name="complete"/>
+                <input name="description"/>
+            </li>
+        </ul>
+    </section>
+
+</section>
+
+</body>
+</html>

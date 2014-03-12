@@ -28,3 +28,6 @@ manifest.yml
 *.ipr
 *.iws
 *.idea
+
+# Client Files
+/bower_components/

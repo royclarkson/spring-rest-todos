@@ -1,0 +1,24 @@
+{
+  "name": "rave-todos",
+  "version": "0.0.0",
+  "authors": [
+    "Brian Cavalier <brian@hovercraftstudios.com>"
+  ],
+  "moduleType": "node",
+  "description": "Todos!",
+  "main": "main",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "rave": "*",
+    "wire": "git@github.com:briancavalier/wire-next.git#crave",
+    "cola": "git@github.com:cujojs/cola.git#document-sync",
+    "rest": "~1"
+  }
+}
