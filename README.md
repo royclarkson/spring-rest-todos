@@ -28,6 +28,7 @@ Modify an existing todo:
 
 ```sh
 curl -X "PUT" -v localhost:8080/todos/0 -H "Content-Type: application/json" -d '{"description":"Modified Todo","complete":false}'
+```
 
 Delete a todo:
 
