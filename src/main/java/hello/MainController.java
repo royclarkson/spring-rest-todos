@@ -24,10 +24,12 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -46,7 +48,11 @@ public class MainController {
 
 	private List<Todo> todos;
 
-	public MainController() {
+	private TodoRepository repo;
+
+	@Autowired
+	public MainController(TodoRepository repo) {
+		this.repo = repo;
 		// initialize list
 		todos = new ArrayList<Todo>();
 		todos.add(new Todo("a", false));
@@ -61,7 +67,7 @@ public class MainController {
 
 	@RequestMapping(value = "/todos", method = RequestMethod.GET, produces = "application/json")
 	public List<Todo> list() {
-		return this.todos;
+		return repo.findAll();
 	}
 
 	@RequestMapping(value = "/todos", method = RequestMethod.PATCH, consumes = "application/json", produces = "application/json")
@@ -83,18 +89,19 @@ public class MainController {
 
 	@RequestMapping(value = "/todos", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
 	public Todo create(@RequestBody Todo todo) {
-		this.todos.add(todo);
-		return todo;
+		return repo.save(todo);
 	}
 
 	@RequestMapping(value = "/todos/{id}", method = RequestMethod.PUT, consumes = "application/json", produces = "application/json")
-	public Todo update(@RequestBody Todo todo, @PathVariable("id") int id) {
-		return this.todos.set(id, todo);
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void update(@RequestBody Todo todo, @PathVariable("id") int id) {
+		repo.save(todo);
 	}
 
 	@RequestMapping(value = "/todos/{id}", method = RequestMethod.DELETE)
-	public Todo delete(@PathVariable("id") int id) {
-		return this.todos.remove(id);
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void delete(@PathVariable("id") long id) {
+		repo.delete(id);
 	}
 
 	// utilities
@@ -112,31 +119,6 @@ public class MainController {
 		Todo[] todoArray = objectMapper.convertValue(todosJson, Todo[].class);
 		this.todos.clear();
 		this.todos.addAll(Arrays.asList(todoArray));
-	}
-
-	@SuppressWarnings("unused")
-	private static class Todo {
-
-		private String description;
-
-		private boolean complete;
-
-		public String getDescription() {
-			return description;
-		}
-
-		public boolean isComplete() {
-			return complete;
-		}
-
-		public Todo() {
-		}
-
-		public Todo(String description, boolean complete) {
-			this.description = description;
-			this.complete = complete;
-		}
-
 	}
 
 }
