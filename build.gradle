@@ -13,7 +13,7 @@ apply plugin: "spring-boot"
 apply plugin: "war"
 
 jar {
-	baseName = "spring-rest-json-patch"
+	baseName = "spring-rest-todos"
 	version =  "0.1.0"
 }
 
