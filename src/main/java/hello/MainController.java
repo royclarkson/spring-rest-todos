@@ -17,8 +17,6 @@
 package hello;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -38,6 +36,10 @@ import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.diff.JsonDiff;
 
+/**
+ * @author Roy Clarkson
+ * @author Craig Walls
+ */
 @RestController
 public class MainController {
 
@@ -46,18 +48,11 @@ public class MainController {
 	@Autowired
 	ObjectMapper objectMapper;
 
-	private List<Todo> todos;
-
 	private TodoRepository repo;
 
 	@Autowired
 	public MainController(TodoRepository repo) {
 		this.repo = repo;
-		// initialize list
-		todos = new ArrayList<Todo>();
-		todos.add(new Todo("a", false));
-		todos.add(new Todo("b", false));
-		todos.add(new Todo("c", false));
 	}
 
 	@RequestMapping("/")
@@ -84,7 +79,8 @@ public class MainController {
 		} catch (JsonPatchException e) {
 			logger.error("Failed to apply patch! Returning unmodified list.", e);
 		}
-		return this.todos;
+//		return this.todos;
+		return null;
 	}
 
 	@RequestMapping(value = "/todos", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
@@ -92,10 +88,25 @@ public class MainController {
 		return repo.save(todo);
 	}
 
-	@RequestMapping(value = "/todos/{id}", method = RequestMethod.PUT, consumes = "application/json", produces = "application/json")
+	@RequestMapping(value = "/todos/{id}", method = RequestMethod.PUT, consumes = "application/json")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void update(@RequestBody Todo todo, @PathVariable("id") int id) {
-		repo.save(todo);
+	public void update(@RequestBody JsonNode updateNode, @PathVariable("id") long id) {
+		JsonPatch patch = null;
+		try {
+			patch = JsonPatch.fromJson(updateNode);
+		} catch (IOException e) {
+			logger.error("Patch request is not valid JSON", e);
+		}
+		Todo currentTodo = repo.findOne(id);
+		JsonNode currentNode = objectMapper.convertValue(currentTodo, JsonNode.class);
+		JsonNode patchedNode = null;
+		try {
+			patchedNode = patch.apply(currentNode);
+		} catch (JsonPatchException e) {
+			logger.error("Failed to apply patch", e);
+		}
+		Todo patchedTodo = objectMapper.convertValue(patchedNode, Todo.class);
+		repo.save(patchedTodo);
 	}
 
 	@RequestMapping(value = "/todos/{id}", method = RequestMethod.DELETE)
@@ -112,13 +123,14 @@ public class MainController {
 	}
 
 	private JsonNode getTodosJson() {
-		return objectMapper.convertValue(this.todos, JsonNode.class);
+//		return objectMapper.convertValue(this.todos, JsonNode.class);
+		return null;
 	}
 
 	private void updateTodosFromJson(JsonNode todosJson) {
-		Todo[] todoArray = objectMapper.convertValue(todosJson, Todo[].class);
-		this.todos.clear();
-		this.todos.addAll(Arrays.asList(todoArray));
+//		Todo[] todoArray = objectMapper.convertValue(todosJson, Todo[].class);
+//		this.todos.clear();
+//		this.todos.addAll(Arrays.asList(todoArray));
 	}
 
 }

@@ -29,6 +29,8 @@ dependencies {
 	compile("com.fasterxml.jackson.core:jackson-databind")
 	compile("com.github.fge:json-patch:1.5");
 	testCompile("org.springframework.boot:spring-boot-starter-test")
+	testCompile("com.jayway.jsonpath:json-path:0.8.1")
+	testCompile("com.jayway.jsonpath:json-path-assert:0.8.1")
 }
 
 task wrapper(type: Wrapper) { gradleVersion = "1.11" }
