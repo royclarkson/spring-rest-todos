@@ -1,5 +1,16 @@
-spring-rest-json-patch
-======================
+# Spring REST Todos
+
+A simple todo list example built with Spring
+
+## Build and Run
+
+```sh
+./gradlew clean build bootRun
+```
+
+## Test
+
+The following curl commands can be used to test the API.
 
 Request the list of todos:
 
