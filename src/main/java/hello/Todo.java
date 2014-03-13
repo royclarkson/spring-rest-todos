@@ -56,5 +56,10 @@ public class Todo {
 		this.description = description;
 		this.complete = complete;
 	}
+	
+	@Override
+	public String toString() {
+		return "[ id=" + this.id + ", description=" + this.description + ", complete=" + this.complete + " ]";
+	}
 
 }

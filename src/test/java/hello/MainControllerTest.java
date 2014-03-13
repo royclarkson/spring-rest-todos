@@ -61,9 +61,6 @@ public class MainControllerTest {
 
 	@Autowired
 	private WebApplicationContext context;
-	
-	@Autowired
-	private ObjectMapper mapper;
 
 	@Mock
 	private TodoRepository repository;
@@ -88,9 +85,9 @@ public class MainControllerTest {
 
 	@Test
 	public void testList() throws Exception {
-		Todo a = new Todo(1L, "a", false);
-		Todo b = new Todo(2L, "b", false);
-		Todo c = new Todo(3L, "c", false);
+		final Todo a = new Todo(1L, "a", false);
+		final Todo b = new Todo(2L, "b", false);
+		final Todo c = new Todo(3L, "c", false);
 		when(repository.findAll()).thenReturn(Arrays.asList(a, b, c));
 
 		mvc.perform(get("/todos")
@@ -119,8 +116,9 @@ public class MainControllerTest {
 
 	@Test
 	public void testCreate() throws Exception {
-		Todo todo = new Todo(1L, "a", false);
-		byte[] bytes = mapper.writeValueAsBytes(todo);
+		final Todo todo = new Todo(1L, "a", false);
+		ObjectMapper objectMapper = new ObjectMapper();
+		final byte[] bytes = objectMapper.writeValueAsBytes(todo);
 
 		when(repository.save(any(Todo.class))).thenReturn(todo);
 
@@ -137,30 +135,49 @@ public class MainControllerTest {
 		verifyNoMoreInteractions(repository);
 	}
 
-	@Ignore
 	@Test
-	public void testUpdate() throws Exception {
-		Todo currentTodo = new Todo(1L, "a", false);
-		Todo updatedTodo = new Todo(1L, "z", true);
-		byte[] bytes = mapper.writeValueAsBytes(updatedTodo);
+	public void testUpdateSameIds() throws Exception {
+		final Todo updatedTodo = new Todo(1L, "z", true);
+		ObjectMapper objectMapper = new ObjectMapper();
+		byte[] bytes = objectMapper.writeValueAsBytes(updatedTodo);
 
-		when(repository.findOne(1L)).thenReturn(currentTodo);
 		when(repository.save(any(Todo.class))).thenReturn(updatedTodo);
 
-		mvc.perform(put("/todos/{id}", 1)
+		mvc.perform(put("/todos/{id}", 1L)
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(bytes))
 				.andExpect(status().isNoContent());
 
-		verify(repository, times(1)).findOne(1L);
+		verify(repository, times(0)).delete(1L);
 		verify(repository, times(1)).save(any(Todo.class));
 		verifyNoMoreInteractions(repository);
 	}
 
-	@Ignore
+	@Test
+	public void testUpdateDifferentIds() throws Exception {
+		final Todo updatedTodo = new Todo(99L, "z", true);
+		ObjectMapper objectMapper = new ObjectMapper();
+		byte[] bytes = objectMapper.writeValueAsBytes(updatedTodo);
+
+		when(repository.save(any(Todo.class))).thenReturn(updatedTodo);
+
+		mvc.perform(put("/todos/{id}", 1L)
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(bytes))
+				.andExpect(status().isNoContent());
+
+		verify(repository, times(1)).delete(1L);
+		verify(repository, times(1)).save(any(Todo.class));
+		verifyNoMoreInteractions(repository);
+	}
+
 	@Test
 	public void testDelete() throws Exception {
-		mvc.perform(delete("/todos/{id}", 2)).andExpect(status().isNoContent());
+//		this is how to test a void method with Mockito
+//		doThrow(new IllegalArgumentException()).when(repository).delete(null);
+
+		mvc.perform(delete("/todos/{id}", 1L))
+				.andExpect(status().isNoContent());
 	}
 
 	@Ignore

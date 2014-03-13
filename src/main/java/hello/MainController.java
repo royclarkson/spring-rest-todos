@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,15 +46,10 @@ public class MainController {
 
 	private static final Logger logger = LoggerFactory.getLogger(MainController.class);
 
-	@Autowired
-	ObjectMapper objectMapper;
-
-	private TodoRepository repo;
+	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	@Autowired
-	public MainController(TodoRepository repo) {
-		this.repo = repo;
-	}
+	private TodoRepository repository;
 
 	@RequestMapping("/")
 	public String home() {
@@ -62,7 +58,7 @@ public class MainController {
 
 	@RequestMapping(value = "/todos", method = RequestMethod.GET, produces = "application/json")
 	public List<Todo> list() {
-		return repo.findAll();
+		return repository.findAll();
 	}
 
 	@RequestMapping(value = "/todos", method = RequestMethod.PATCH, consumes = "application/json", produces = "application/json")
@@ -85,34 +81,23 @@ public class MainController {
 
 	@RequestMapping(value = "/todos", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
 	public Todo create(@RequestBody Todo todo) {
-		return repo.save(todo);
+		return repository.save(todo);
 	}
 
 	@RequestMapping(value = "/todos/{id}", method = RequestMethod.PUT, consumes = "application/json")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void update(@RequestBody JsonNode updateNode, @PathVariable("id") long id) {
-		JsonPatch patch = null;
-		try {
-			patch = JsonPatch.fromJson(updateNode);
-		} catch (IOException e) {
-			logger.error("Patch request is not valid JSON", e);
+	@Transactional
+	public void update(@RequestBody Todo updatedTodo, @PathVariable("id") long id) throws IOException, JsonPatchException {
+		if (id != updatedTodo.getId()) {
+			repository.delete(id);
 		}
-		Todo currentTodo = repo.findOne(id);
-		JsonNode currentNode = objectMapper.convertValue(currentTodo, JsonNode.class);
-		JsonNode patchedNode = null;
-		try {
-			patchedNode = patch.apply(currentNode);
-		} catch (JsonPatchException e) {
-			logger.error("Failed to apply patch", e);
-		}
-		Todo patchedTodo = objectMapper.convertValue(patchedNode, Todo.class);
-		repo.save(patchedTodo);
+		repository.save(updatedTodo);
 	}
 
 	@RequestMapping(value = "/todos/{id}", method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable("id") long id) {
-		repo.delete(id);
+		repository.delete(id);
 	}
 
 	// utilities
