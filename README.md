@@ -47,3 +47,25 @@ Generate a JSON PATCH from a modified todo list:
 ```sh
 curl -X "POST" -v localhost:8080/todos/diff -H "Content-Type: application/json" -d '[{"description":"go go go!","complete":false},{"description":"b","complete":false}]'
 ```
+
+## Run the Web Client
+
+### Setup
+
+```sh
+npm install -g bower
+cd public
+bower install
+```
+
+#### Temporary workaround for bower moduleType and RaveJS support
+
+There is [an open PR](https://github.com/cujojs/rest/pull/58) to add `moduleType` to rest.js to support RaveJS.  Until that's merged, you need to add it manually to `public/bower_components/rest/bower.json` after running `bower install`:
+
+```json
+  moduleType: ["amd", "node"]
+```
+
+### Open in Browser
+
+Go to http://localhost:8080/index.html
