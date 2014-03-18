@@ -17,6 +17,7 @@
 package hello;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -61,24 +62,19 @@ public class MainController {
 		return repository.findAll();
 	}
 
+	// TODO: Change consumes to "application/json-patch+json"
 	@RequestMapping(value = "/todos", method = RequestMethod.PATCH, consumes = "application/json", produces = "application/json")
-	public List<Todo> patch(@RequestBody JsonNode modifiedTodos) {
-		JsonPatch patch = null;
-		try {
-			patch = JsonPatch.fromJson(modifiedTodos);
-		} catch (IOException e) {
-			logger.error("Patch request is not valid JSON. Returning unmodified list.", e);
-		}
+	@ResponseStatus(HttpStatus.NO_CONTENT) // TODO: Consider what we *should* be returning here.
+	public void patch(JsonPatch patch) {
+		
 		try {
 			JsonNode patchedTodos = patch.apply(getTodosJson());
 			updateTodosFromJson(patchedTodos);
 		} catch (JsonPatchException e) {
 			logger.error("Failed to apply patch! Returning unmodified list.", e);
 		}
-//		return this.todos;
-		return null;
 	}
-
+	
 	@RequestMapping(value = "/todos", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
 	public Todo create(@RequestBody Todo todo) {
 		return repository.save(todo);
@@ -102,20 +98,21 @@ public class MainController {
 
 	// utilities
 
+	// TODO: Change produces to "application/json-patch+json"
 	@RequestMapping(value = "todos/diff", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
 	public JsonNode diff(@RequestBody JsonNode modifiedTodos) {
 		return JsonDiff.asJson(getTodosJson(), modifiedTodos);
 	}
 
 	private JsonNode getTodosJson() {
-//		return objectMapper.convertValue(this.todos, JsonNode.class);
-		return null;
+		List<Todo> allTodos = repository.findAll();
+		return objectMapper.convertValue(allTodos, JsonNode.class);
 	}
 
 	private void updateTodosFromJson(JsonNode todosJson) {
-//		Todo[] todoArray = objectMapper.convertValue(todosJson, Todo[].class);
-//		this.todos.clear();
-//		this.todos.addAll(Arrays.asList(todoArray));
+		Todo[] todoArray = objectMapper.convertValue(todosJson, Todo[].class);
+		List<Todo> todoList = Arrays.asList(todoArray);
+		repository.save(todoList);
 	}
 
 }
