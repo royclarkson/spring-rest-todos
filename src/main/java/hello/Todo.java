@@ -21,6 +21,9 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+
 /**
  * @author Roy Clarkson
  * @author Craig Walls
@@ -62,4 +65,13 @@ public class Todo {
 		return "[ id=" + this.id + ", description=" + this.description + ", complete=" + this.complete + " ]";
 	}
 
+	@Override
+	public boolean equals(Object other) {
+		return EqualsBuilder.reflectionEquals(this, other);
+	}
+	
+	@Override
+	public int hashCode() {
+		return HashCodeBuilder.reflectionHashCode(this);
+	}
 }

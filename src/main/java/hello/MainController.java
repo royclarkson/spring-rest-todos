@@ -43,30 +43,34 @@ import com.github.fge.jsonpatch.diff.JsonDiff;
  * @author Craig Walls
  */
 @RestController
+@RequestMapping("/todos")
 public class MainController {
 
 	private static final Logger logger = LoggerFactory.getLogger(MainController.class);
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
-	@Autowired
 	private TodoRepository repository;
+	
+	@Autowired
+	public MainController(TodoRepository repository) {
+		this.repository = repository;
+	}
 
 	@RequestMapping("/")
 	public String home() {
 		return "Todo List";
 	}
 
-	@RequestMapping(value = "/todos", method = RequestMethod.GET, produces = "application/json")
+	@RequestMapping(method = RequestMethod.GET, produces = "application/json")
 	public List<Todo> list() {
 		return repository.findAll();
 	}
 
 	// TODO: Change consumes to "application/json-patch+json"
-	@RequestMapping(value = "/todos", method = RequestMethod.PATCH, consumes = "application/json", produces = "application/json")
+	@RequestMapping(method = RequestMethod.PATCH, consumes = "application/json", produces = "application/json")
 	@ResponseStatus(HttpStatus.NO_CONTENT) // TODO: Consider what we *should* be returning here.
 	public void patch(JsonPatch patch) {
-		
 		try {
 			JsonNode patchedTodos = patch.apply(getTodosJson());
 			updateTodosFromJson(patchedTodos);
@@ -75,12 +79,12 @@ public class MainController {
 		}
 	}
 	
-	@RequestMapping(value = "/todos", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
+	@RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
 	public Todo create(@RequestBody Todo todo) {
 		return repository.save(todo);
 	}
 
-	@RequestMapping(value = "/todos/{id}", method = RequestMethod.PUT, consumes = "application/json")
+	@RequestMapping(value = "/{id}", method = RequestMethod.PUT, consumes = "application/json")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Transactional
 	public void update(@RequestBody Todo updatedTodo, @PathVariable("id") long id) throws IOException, JsonPatchException {
@@ -90,7 +94,7 @@ public class MainController {
 		repository.save(updatedTodo);
 	}
 
-	@RequestMapping(value = "/todos/{id}", method = RequestMethod.DELETE)
+	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable("id") long id) {
 		repository.delete(id);
@@ -99,7 +103,7 @@ public class MainController {
 	// utilities
 
 	// TODO: Change produces to "application/json-patch+json"
-	@RequestMapping(value = "todos/diff", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
+	@RequestMapping(value = "/diff", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
 	public JsonNode diff(@RequestBody JsonNode modifiedTodos) {
 		return JsonDiff.asJson(getTodosJson(), modifiedTodos);
 	}
@@ -114,5 +118,10 @@ public class MainController {
 		List<Todo> todoList = Arrays.asList(todoArray);
 		repository.save(todoList);
 	}
+	
+	public TodoRepository getRepository() {
+		return repository;
+	}
+
 
 }
