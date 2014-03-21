@@ -67,8 +67,8 @@ public class PatchController {
 
 	@RequestMapping(value = "/diff", 
 					method = RequestMethod.POST, 
-					consumes={"application/json", "application/json-patch+json"}, 
-					produces = "application/json")
+					consumes="application/json", 
+					produces = {"application/json", "application/json-patch+json"})
 	public JsonNode diff(@RequestBody JsonNode modifiedTodos) {
 		return JsonDiff.asJson(getTodosJson(), modifiedTodos);
 	}

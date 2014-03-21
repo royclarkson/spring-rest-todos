@@ -122,7 +122,7 @@ public class PatchCollectionTest {
 
 	
 	//
-	// Operation: "delete"
+	// Operation: "remove"
 	//
 	@Test
 	public void deleteOne() throws Exception {
