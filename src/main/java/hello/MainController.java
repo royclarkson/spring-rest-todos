@@ -17,11 +17,8 @@
 package hello;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,11 +29,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
-import com.github.fge.jsonpatch.diff.JsonDiff;
 
 /**
  * @author Roy Clarkson
@@ -45,10 +38,6 @@ import com.github.fge.jsonpatch.diff.JsonDiff;
 @RestController
 @RequestMapping("/todos")
 public class MainController {
-
-	private static final Logger logger = LoggerFactory.getLogger(MainController.class);
-
-	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	private TodoRepository repository;
 	
@@ -65,18 +54,6 @@ public class MainController {
 	@RequestMapping(method = RequestMethod.GET, produces = "application/json")
 	public List<Todo> list() {
 		return repository.findAll();
-	}
-
-	// TODO: Change consumes to "application/json-patch+json"
-	@RequestMapping(method = RequestMethod.PATCH, consumes = "application/json", produces = "application/json")
-	@ResponseStatus(HttpStatus.NO_CONTENT) // TODO: Consider what we *should* be returning here.
-	public void patch(JsonPatch patch) {
-		try {
-			JsonNode patchedTodos = patch.apply(getTodosJson());
-			updateTodosFromJson(patchedTodos);
-		} catch (JsonPatchException e) {
-			logger.error("Failed to apply patch! Returning unmodified list.", e);
-		}
 	}
 	
 	@RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
@@ -99,29 +76,5 @@ public class MainController {
 	public void delete(@PathVariable("id") long id) {
 		repository.delete(id);
 	}
-
-	// utilities
-
-	// TODO: Change produces to "application/json-patch+json"
-	@RequestMapping(value = "/diff", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
-	public JsonNode diff(@RequestBody JsonNode modifiedTodos) {
-		return JsonDiff.asJson(getTodosJson(), modifiedTodos);
-	}
-
-	private JsonNode getTodosJson() {
-		List<Todo> allTodos = repository.findAll();
-		return objectMapper.convertValue(allTodos, JsonNode.class);
-	}
-
-	private void updateTodosFromJson(JsonNode todosJson) {
-		Todo[] todoArray = objectMapper.convertValue(todosJson, Todo[].class);
-		List<Todo> todoList = Arrays.asList(todoArray);
-		repository.save(todoList);
-	}
-	
-	public TodoRepository getRepository() {
-		return repository;
-	}
-
 
 }

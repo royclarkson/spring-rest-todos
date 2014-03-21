@@ -23,10 +23,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.context.WebApplicationContext;
 
-//@RunWith(SpringJUnit4ClassRunner.class)
-//@WebAppConfiguration
-//@ContextConfiguration(classes = Application.class)
-public class TodoPatchTest {
+public class PatchCollectionTest {
 
 	@Autowired
 	private WebApplicationContext context;
@@ -35,7 +32,7 @@ public class TodoPatchTest {
 	private TodoRepository repository;
 
 	@InjectMocks
-	MainController mainController;
+	PatchController controller;
 
 	private MockMvc mvc;
 
@@ -47,23 +44,60 @@ public class TodoPatchTest {
 		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
 		messageConverters.add(new MappingJackson2HttpMessageConverter());
 		mvc = MockMvcBuilders
-				.standaloneSetup(mainController)
+				.standaloneSetup(controller)
 				.setCustomArgumentResolvers(new JsonPatchMethodArgumentResolver(messageConverters))
 				.build();
 	}
 
+
+	//
+	// Operation: "add"
+	//
+	// NOTE: The add operation is expected to add a new item at the index specified in the patch operation path.
+	//       This is flawed, however, because the index, which is not necessarily the same thing as the entity's ID,
+	//       is determined by the server and whatever sorting scheme is in place when the client fetched the original
+	//       resource collection. Moreover, the list may change between the time that the client creates the patch and
+	//       the time that the patch is applied, resulting in a different ordering.
+	//       In the end, the best that can be accomplished with the "add" operation is that the new item is created,
+	//       but there can be no guarantees with regard to its ultimate position in the resource list.
+	@Test
+	public void patchAddNewTodoAtEnd() throws Exception {
+		List<Todo> initial = getTodoList(3);
+		List<Todo> expected = getTodoList(3);
+		expected.add(new Todo(4L, "d", false));
+		performPatchRequest("patch-add-todo-at-end", initial, expected);
+	}
+
+	@Test
+	public void patchAddNewTodoAtBeginning() throws Exception {
+		List<Todo> initial = getTodoList(3);
+		List<Todo> expected = new ArrayList<Todo>();
+		expected.add(new Todo(4L, "d", false));
+		expected.addAll(getTodoList(3));
+		performPatchRequest("patch-add-todo-at-beginning", initial, expected);
+	}
+	
+	
+	//
+	// Operation: "replace"
+	//
+	// NOTE: The replace operation is expected to replace an item at the index specified in the patch operation path.
+	//       This will work fine so long as the resource list doesn't change. However, the list could change between
+	//       the time that the client creates the patch and the time the patch is applied. Thus, the item that the
+	//       client intends to replace may no longer be at the same index. Consequently, the replace operation may
+	//       replace the wrong item.
 	@Test
 	public void patchOneComplete() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3, 1);
-		performPatchRequest("patch-single-todo-complete", initial, expected);
+		performPatchRequest("patch-replace-single-todo-complete", initial, expected);
 	}
 
 	@Test
 	public void patchAllComplete() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3, 0, 1, 2);
-		performPatchRequest("patch-all-todo-complete", initial, expected);
+		performPatchRequest("patch-replace-all-todo-complete", initial, expected);
 	}
 	
 	@Test
@@ -73,7 +107,7 @@ public class TodoPatchTest {
 		expected.add(new Todo(1L, "a", false));
 		expected.add(new Todo(2L, "I've changed", false));
 		expected.add(new Todo(3L, "c", false));
-		performPatchRequest("patch-single-todo-description", initial, expected);
+		performPatchRequest("patch-replace-single-todo-description", initial, expected);
 	}
 
 	@Test
@@ -83,39 +117,51 @@ public class TodoPatchTest {
 		expected.add(new Todo(1L, "I've changed", false));
 		expected.add(new Todo(2L, "Me too", false));
 		expected.add(new Todo(3L, "Me three", false));
-		performPatchRequest("patch-all-todo-description", initial, expected);
+		performPatchRequest("patch-replace-all-todo-description", initial, expected);
 	}
+
 	
+	//
+	// Operation: "delete"
+	//
 	@Test
-	public void patchAddNewTodoAtEnd() throws Exception {
+	public void deleteOne() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3);
-		expected.add(new Todo(4L, "d", false));
-		performPatchRequest("patch-add-todo-at-end", initial, expected);
+		expected.remove(0);
+		
+		// This passes, but only because the mock repository is being called as expected.
+		// It does not work in reality, though, because the patch only saves the 2 remaining items, not
+		performPatchRequest("patch-remove-todo", initial, expected);
 	}
-
-	// NOTE: The following example is kinda screwy. It saves the patched list with the new member at the beginning, shifting
-	//       all other members to the right. That part is how JSON Patch is supposed to work. In the database, however, the
-	//       database itself is in control of the ordering of things, so this insert-and-shift will have no bearing on how
-	//       things are kept in the database.
-	@Test
-	public void patchAddNewTodoAtBeginning() throws Exception {
-		List<Todo> initial = getTodoList(3);
-		List<Todo> expected = new ArrayList<Todo>();
-		expected.add(new Todo(4L, "d", false));
-		expected.addAll(getTodoList(3));
-		performPatchRequest("patch-add-todo-at-beginning", initial, expected);
-	}
-
+	
+	
+	//
+	// Operation: "move"
+	//
+	
+	
+	
+	//
+	// Operation: "copy"
+	//
+	
+	
+	
+	//
+	// Operation: "test"
+	//
+	
+	
+	
 
 	// private helpers
 	private void performPatchRequest(String patchJson, List<Todo> initial, List<Todo> expected)
 			throws Exception, IOException {
 		when(repository.findAll()).thenReturn(initial);
-		
 		mvc.perform(patch("/todos")
 				.content(jsonResource(patchJson))
-				.contentType(MediaType.APPLICATION_JSON));
+				.contentType(new MediaType("application", "json-patch+json")));
 		verify(repository).save(expected);
 	}
 	
