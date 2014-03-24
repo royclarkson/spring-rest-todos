@@ -22,7 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -56,13 +59,28 @@ public class PatchController {
 					consumes={"application/json", "application/json-patch+json"}, 
 					produces = "application/json")
 	@ResponseStatus(HttpStatus.NO_CONTENT) // TODO: Consider what we *should* be returning here.
-	public void patch(JsonPatch patch) {
+	public ResponseEntity<?> patch(JsonPatch patch, @RequestHeader(value="ETag", required=false) String etag) {
 		try {
-			JsonNode patchedTodos = patch.apply(getTodosJson());
+			JsonNode todosJson = getTodosJson();
+			byte[] bytes = todosJson.toString().getBytes();
+			String etag2 = generateETagHeaderValue(bytes);
+			if (etag != null && !etag.equals(etag2)) {
+				return new ResponseEntity<String>("", HttpStatus.CONFLICT);
+			}
+			
+			JsonNode patchedTodos = patch.apply(todosJson);
 			updateTodosFromJson(patchedTodos);
+			return new ResponseEntity<String>("", HttpStatus.NO_CONTENT);
 		} catch (JsonPatchException e) {
 			logger.error("Failed to apply patch! Returning unmodified list.", e);
+			return new ResponseEntity<String>("", HttpStatus.UNPROCESSABLE_ENTITY);
 		}
+	}
+	
+	protected String generateETagHeaderValue(byte[] bytes) {
+		StringBuilder builder = new StringBuilder("0");
+		DigestUtils.appendMd5DigestAsHex(bytes, builder);
+		return builder.toString();
 	}
 
 	@RequestMapping(value = "/diff", 

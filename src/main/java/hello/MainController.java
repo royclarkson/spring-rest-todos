@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,8 +54,10 @@ public class MainController {
 	}
 
 	@RequestMapping(method = RequestMethod.GET, produces = "application/json")
-	public List<Todo> list() {
-		return repository.findAll();
+	public ResponseEntity<List<Todo>> list() {
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Accept-Patch", "application/json-patch+json");
+		return new ResponseEntity<List<Todo>>(repository.findAll(), headers, HttpStatus.OK);
 	}
 	
 	@RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
