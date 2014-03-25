@@ -15,7 +15,6 @@
  */
 package hello;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -25,18 +24,19 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.DigestUtils;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
-import com.github.fge.jsonpatch.diff.JsonDiff;
 
 /**
  * @author Roy Clarkson
@@ -59,27 +59,45 @@ public class PatchController {
 	@RequestMapping(method=RequestMethod.PATCH, 
 					consumes={"application/json", "application/json-patch+json"}, 
 					produces = "application/json")
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public ResponseEntity<Void> patch(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) {
-		try {
-			JsonNode todosJson = getTodosJson();
-			String generateETagHeaderValue = generateETagHeaderValue(todosJson);
-			System.out.println(generateETagHeaderValue);
-			if (ifMatch == null || ifMatch.equals(generateETagHeaderValue)) {
-				JsonNode patchedTodos = patch.apply(todosJson);
-				updateTodosFromJson(patchedTodos);
-				HttpHeaders headers = new HttpHeaders();
-				headers.setETag(generateETagHeaderValue(patchedTodos));
-				return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
-			}
-			return new ResponseEntity<Void>(HttpStatus.CONFLICT);
-		} catch (JsonPatchException e) {
-			logger.error("Failed to apply patch! Returning unmodified list.", e);
-			return new ResponseEntity<Void>(HttpStatus.UNPROCESSABLE_ENTITY);
-		}
+	public ResponseEntity<Void> patch(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
+		PatchResult<List<Todo>> patchResult = performMatch(patch, ifMatch, repository.findAll(), Todo.class);
+		repository.save(patchResult.getEntity());
+		HttpHeaders headers = new HttpHeaders();
+		headers.setETag(patchResult.getETag());
+		return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
+	}
+
+	@ExceptionHandler(JsonPatchException.class)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	public void handleJsonPatchException(JsonPatchException e) {
+		logger.error("Failed to apply patch! Returning unmodified list.", e);
+	}
+
+	@ExceptionHandler(ETagMismatchException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public void handleETagMismatchException() {
 	}
 	
-	protected String generateETagHeaderValue(JsonNode node) {
+	// private helpers
+	private <T> PatchResult<List<T>> performMatch(JsonPatch patch, String ifMatch, List<T> entity, Class<T> listType) throws JsonPatchException, ETagMismatchException {
+		JsonNode todosJson = asJsonNodeIfMatch(entity, ifMatch);
+		JsonNode patchedTodos = patch.apply(todosJson);
+		JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, listType);
+		List<T> todoList = objectMapper.convertValue(patchedTodos, type);
+		PatchResult<List<T>> patchResult = new PatchResult<List<T>>(todoList, generateETagHeaderValue(patchedTodos));
+		return patchResult;
+	}
+	
+	private JsonNode asJsonNodeIfMatch(Object o, String ifMatch) throws ETagMismatchException {
+		JsonNode json = objectMapper.convertValue(o, JsonNode.class);
+		String etag = generateETagHeaderValue(json);
+		if (ifMatch == null || ifMatch.equals(etag)) {
+			return json;
+		}
+		throw new ETagMismatchException(ifMatch, etag);
+	}
+	
+	private String generateETagHeaderValue(JsonNode node) {
 		byte[] bytes = node.toString().getBytes();
 		StringBuilder builder = new StringBuilder("\"0");
 		DigestUtils.appendMd5DigestAsHex(bytes, builder);
@@ -87,26 +105,32 @@ public class PatchController {
 		return builder.toString();
 	}
 
-	@RequestMapping(value = "/diff", 
-					method = RequestMethod.POST, 
-					consumes="application/json", 
-					produces = {"application/json", "application/json-patch+json"})
-	public JsonNode diff(@RequestBody JsonNode modifiedTodos) {
-		return JsonDiff.asJson(getTodosJson(), modifiedTodos);
-	}
-
-	
-	
-	// private helpers
 	private JsonNode getTodosJson() {
 		List<Todo> allTodos = repository.findAll();
 		return objectMapper.convertValue(allTodos, JsonNode.class);
 	}
 
-	private void updateTodosFromJson(JsonNode todosJson) {
-		Todo[] todoArray = objectMapper.convertValue(todosJson, Todo[].class);
-		List<Todo> todoList = Arrays.asList(todoArray);
-		repository.save(todoList);
-	}
+	private static class PatchResult<T> {
+		private final T entity;
+		private final String etag;
 
+		public PatchResult(T entity, String etag) {
+			this.entity = entity;
+			this.etag = etag;
+		}
+		
+		public T getEntity() {
+			return entity;
+		}
+		
+		public String getETag() {
+			return etag;
+		}
+	}
+	
+	private static class ETagMismatchException extends Exception {
+		public ETagMismatchException(String expected, String received) {
+			super("Expected " + expected +" but received " + received + ".");
+		}
+	}
 }

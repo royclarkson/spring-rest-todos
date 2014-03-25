@@ -1,5 +1,6 @@
 package hello;
 
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -155,6 +156,20 @@ public class PatchCollectionTest {
 	
 	
 	
+	//
+	// ETag mismatch
+	//
+	@Test
+	public void eTagMismatch() throws Exception {
+		List<Todo> initial = getTodoList(3);
+		when(repository.findAll()).thenReturn(initial);
+		mvc.perform(patch("/todos")
+				.content(jsonResource("patch-replace-single-todo-complete"))
+				.header("If-Match", "\"0c2218ebd99cc6cb63ff716a470fa8241\"")
+				.contentType(new MediaType("application", "json-patch+json")))
+				.andExpect(status().isConflict());
+		verify(repository, never()).save(any(initial.getClass()));
+	}
 
 	// private helpers
 	private void performPatchRequest(String patchJson, List<Todo> initial, List<Todo> expected, String expectedETag)
