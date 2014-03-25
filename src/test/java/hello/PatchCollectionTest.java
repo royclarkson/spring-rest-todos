@@ -2,6 +2,7 @@ package hello;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -65,7 +66,7 @@ public class PatchCollectionTest {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3);
 		expected.add(new Todo(4L, "d", false));
-		performPatchRequest("patch-add-todo-at-end", initial, expected);
+		performPatchRequest("patch-add-todo-at-end", initial, expected, "\"00c05eb5a529b248712fbeaad0ccf2994\"");
 	}
 
 	@Test
@@ -74,7 +75,7 @@ public class PatchCollectionTest {
 		List<Todo> expected = new ArrayList<Todo>();
 		expected.add(new Todo(4L, "d", false));
 		expected.addAll(getTodoList(3));
-		performPatchRequest("patch-add-todo-at-beginning", initial, expected);
+		performPatchRequest("patch-add-todo-at-beginning", initial, expected, "\"0acfa4a7106f27bf444360469392e0fac\"");
 	}
 	
 	
@@ -90,14 +91,14 @@ public class PatchCollectionTest {
 	public void patchOneComplete() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3, 1);
-		performPatchRequest("patch-replace-single-todo-complete", initial, expected);
+		performPatchRequest("patch-replace-single-todo-complete", initial, expected, "\"0f39e48479e2253330de0e4c5d6f393e9\"");
 	}
 
 	@Test
 	public void patchAllComplete() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3, 0, 1, 2);
-		performPatchRequest("patch-replace-all-todo-complete", initial, expected);
+		performPatchRequest("patch-replace-all-todo-complete", initial, expected, "\"02607190d7f23f1e9b435a4f2665299bb\"");
 	}
 	
 	@Test
@@ -107,7 +108,7 @@ public class PatchCollectionTest {
 		expected.add(new Todo(1L, "a", false));
 		expected.add(new Todo(2L, "I've changed", false));
 		expected.add(new Todo(3L, "c", false));
-		performPatchRequest("patch-replace-single-todo-description", initial, expected);
+		performPatchRequest("patch-replace-single-todo-description", initial, expected, "\"065c350be6ff14ba6024a42322d745639\"");
 	}
 
 	@Test
@@ -117,7 +118,7 @@ public class PatchCollectionTest {
 		expected.add(new Todo(1L, "I've changed", false));
 		expected.add(new Todo(2L, "Me too", false));
 		expected.add(new Todo(3L, "Me three", false));
-		performPatchRequest("patch-replace-all-todo-description", initial, expected);
+		performPatchRequest("patch-replace-all-todo-description", initial, expected, "\"0809f6a9ae65916a112cc5a4f6211d85a\"");
 	}
 
 	
@@ -132,7 +133,7 @@ public class PatchCollectionTest {
 		
 		// This passes, but only because the mock repository is being called as expected.
 		// It does not work in reality, though, because the patch only saves the 2 remaining items, not
-		performPatchRequest("patch-remove-todo", initial, expected);
+		performPatchRequest("patch-remove-todo", initial, expected, "\"0bca2dadff5254d909aa72e0d83bed261\"");
 	}
 	
 	
@@ -156,12 +157,15 @@ public class PatchCollectionTest {
 	
 
 	// private helpers
-	private void performPatchRequest(String patchJson, List<Todo> initial, List<Todo> expected)
+	private void performPatchRequest(String patchJson, List<Todo> initial, List<Todo> expected, String expectedETag)
 			throws Exception, IOException {
 		when(repository.findAll()).thenReturn(initial);
 		mvc.perform(patch("/todos")
 				.content(jsonResource(patchJson))
-				.contentType(new MediaType("application", "json-patch+json")));
+				.header("If-Match", "\"0c2218ebd99cc6cb63ff716a470fa8242\"")
+				.contentType(new MediaType("application", "json-patch+json")))
+				.andExpect(status().isNoContent())
+				.andExpect(header().string("ETag", expectedETag));
 		verify(repository).save(expected);
 	}
 	

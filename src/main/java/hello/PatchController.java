@@ -21,6 +21,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.DigestUtils;
@@ -58,28 +59,31 @@ public class PatchController {
 	@RequestMapping(method=RequestMethod.PATCH, 
 					consumes={"application/json", "application/json-patch+json"}, 
 					produces = "application/json")
-	@ResponseStatus(HttpStatus.NO_CONTENT) // TODO: Consider what we *should* be returning here.
-	public ResponseEntity<?> patch(JsonPatch patch, @RequestHeader(value="ETag", required=false) String etag) {
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public ResponseEntity<Void> patch(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) {
 		try {
 			JsonNode todosJson = getTodosJson();
-			byte[] bytes = todosJson.toString().getBytes();
-			String etag2 = generateETagHeaderValue(bytes);
-			if (etag != null && !etag.equals(etag2)) {
-				return new ResponseEntity<String>("", HttpStatus.CONFLICT);
+			String generateETagHeaderValue = generateETagHeaderValue(todosJson);
+			System.out.println(generateETagHeaderValue);
+			if (ifMatch == null || ifMatch.equals(generateETagHeaderValue)) {
+				JsonNode patchedTodos = patch.apply(todosJson);
+				updateTodosFromJson(patchedTodos);
+				HttpHeaders headers = new HttpHeaders();
+				headers.setETag(generateETagHeaderValue(patchedTodos));
+				return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
 			}
-			
-			JsonNode patchedTodos = patch.apply(todosJson);
-			updateTodosFromJson(patchedTodos);
-			return new ResponseEntity<String>("", HttpStatus.NO_CONTENT);
+			return new ResponseEntity<Void>(HttpStatus.CONFLICT);
 		} catch (JsonPatchException e) {
 			logger.error("Failed to apply patch! Returning unmodified list.", e);
-			return new ResponseEntity<String>("", HttpStatus.UNPROCESSABLE_ENTITY);
+			return new ResponseEntity<Void>(HttpStatus.UNPROCESSABLE_ENTITY);
 		}
 	}
 	
-	protected String generateETagHeaderValue(byte[] bytes) {
-		StringBuilder builder = new StringBuilder("0");
+	protected String generateETagHeaderValue(JsonNode node) {
+		byte[] bytes = node.toString().getBytes();
+		StringBuilder builder = new StringBuilder("\"0");
 		DigestUtils.appendMd5DigestAsHex(bytes, builder);
+		builder.append("\"");
 		return builder.toString();
 	}
 
