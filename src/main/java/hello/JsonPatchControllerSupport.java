@@ -19,7 +19,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -39,34 +37,46 @@ import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 
 /**
- * @author Roy Clarkson
+ * REST controllers can extend this abstract class to support handling of JSON Patch requests against a given resource type.
  * @author Craig Walls
+ * @param <T> The entity type of the resource that this controller deals with.
+ * @param <I> The ID type of the entity.
  */
-@RestController
-@RequestMapping("/todos")
-public class PatchController {
+public abstract class JsonPatchControllerSupport<T, I> {
 	private static final Logger logger = LoggerFactory.getLogger(MainController.class);
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
-	private TodoRepository repository;
-	
-	@Autowired
-	public PatchController(TodoRepository repository) {
-		this.repository = repository;
-	}
+	private Class<T> clazz;
 
+	public JsonPatchControllerSupport(Class<T> clazz) {
+		this.clazz = clazz;
+	}
+	
 	@RequestMapping(method=RequestMethod.PATCH, 
 					consumes={"application/json", "application/json-patch+json"}, 
 					produces = "application/json")
-	public ResponseEntity<Void> patch(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
-		PatchResult<List<Todo>> patchResult = performMatch(patch, ifMatch, repository.findAll(), Todo.class);
-		repository.save(patchResult.getEntity());
+	public ResponseEntity<Void> patchList(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
+		PatchResult<List<T>> patchResult = performMatch(patch, ifMatch, getEntityList(), clazz);
+		saveEntityList(patchResult.getEntity());
 		HttpHeaders headers = new HttpHeaders();
 		headers.setETag(patchResult.getETag());
 		return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
 	}
 
+	@RequestMapping(
+			value="/{id}",
+			method=RequestMethod.PATCH, 
+			consumes={"application/json", "application/json-patch+json"}, 
+			produces = "application/json")
+	public ResponseEntity<Void> patchEntity(I id, JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
+		PatchResult<T> patchResult = performMatch(patch, ifMatch, getEntity(id));
+		saveEntity(patchResult.getEntity());
+		HttpHeaders headers = new HttpHeaders();
+		headers.setETag(patchResult.getETag());
+		return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
+	}
+	
 	@ExceptionHandler(JsonPatchException.class)
 	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 	public void handleJsonPatchException(JsonPatchException e) {
@@ -78,16 +88,34 @@ public class PatchController {
 	public void handleETagMismatchException() {
 	}
 	
+
+	// hooks for persistence
+	protected abstract T getEntity(I id);
+	
+	protected abstract void saveEntity(T entityList);
+
+	protected abstract List<T> getEntityList();
+	
+	protected abstract void saveEntityList(List<T> entityList);
+	
 	// private helpers
-	private <T> PatchResult<List<T>> performMatch(JsonPatch patch, String ifMatch, List<T> entity, Class<T> listType) throws JsonPatchException, ETagMismatchException {
-		JsonNode todosJson = asJsonNodeIfMatch(entity, ifMatch);
-		JsonNode patchedTodos = patch.apply(todosJson);
+	private PatchResult<List<T>> performMatch(JsonPatch patch, String ifMatch, List<T> entity, Class<T> listType) throws JsonPatchException, ETagMismatchException {
+		JsonNode original = asJsonNodeIfMatch(entity, ifMatch);
+		JsonNode patched = patch.apply(original);
 		JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, listType);
-		List<T> todoList = objectMapper.convertValue(patchedTodos, type);
-		PatchResult<List<T>> patchResult = new PatchResult<List<T>>(todoList, generateETagHeaderValue(patchedTodos));
+		List<T> list = objectMapper.convertValue(patched, type);
+		PatchResult<List<T>> patchResult = new PatchResult<List<T>>(list, generateETagHeaderValue(patched));
 		return patchResult;
 	}
-	
+
+	private PatchResult<T> performMatch(JsonPatch patch, String ifMatch, T entity) throws JsonPatchException, ETagMismatchException {
+		JsonNode original = asJsonNodeIfMatch(entity, ifMatch);
+		JsonNode patched = patch.apply(original);
+		T list = objectMapper.convertValue(patched, clazz);
+		PatchResult<T> patchResult = new PatchResult<T>(list, generateETagHeaderValue(patched));
+		return patchResult;
+	}
+
 	private JsonNode asJsonNodeIfMatch(Object o, String ifMatch) throws ETagMismatchException {
 		JsonNode json = objectMapper.convertValue(o, JsonNode.class);
 		String etag = generateETagHeaderValue(json);
@@ -103,11 +131,6 @@ public class PatchController {
 		DigestUtils.appendMd5DigestAsHex(bytes, builder);
 		builder.append("\"");
 		return builder.toString();
-	}
-
-	private JsonNode getTodosJson() {
-		List<Todo> allTodos = repository.findAll();
-		return objectMapper.convertValue(allTodos, JsonNode.class);
 	}
 
 	private static class PatchResult<T> {
@@ -128,6 +151,7 @@ public class PatchController {
 		}
 	}
 	
+	@SuppressWarnings("serial")
 	private static class ETagMismatchException extends Exception {
 		public ETagMismatchException(String expected, String received) {
 			super("Expected " + expected +" but received " + received + ".");
