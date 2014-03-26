@@ -57,4 +57,9 @@ public class TodoPatchController extends JsonPatchControllerSupport<Todo, Long> 
 		repository.save(entityList);
 	}
 	
+	@Override
+	protected void deleteEntity(Long id) {
+		repository.delete(id);
+	}
+	
 }

@@ -33,8 +33,10 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.github.fge.jackson.jsonpointer.JsonPointer;
 import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
+import com.github.fge.jsonpatch.PatchListenerAdapter;
 
 /**
  * REST controllers can extend this abstract class to support handling of JSON Patch requests against a given resource type.
@@ -98,10 +100,19 @@ public abstract class JsonPatchControllerSupport<T, I> {
 	
 	protected abstract void saveEntityList(List<T> entityList);
 	
+	protected abstract void deleteEntity(I id);
+	
 	// private helpers
 	private PatchResult<List<T>> performMatch(JsonPatch patch, String ifMatch, List<T> entity, Class<T> listType) throws JsonPatchException, ETagMismatchException {
 		JsonNode original = asJsonNodeIfMatch(entity, ifMatch);
-		JsonNode patched = patch.apply(original);
+		JsonNode patched = patch.apply(original, new PatchListenerAdapter() {
+			@Override
+			public void remove(JsonNode node, JsonPointer path) {
+				JsonNode target = path.get(node);
+				Long id = target.get("id").longValue();
+				deleteEntity((I) id); // TODO: HACKY!!!!!!!!!!!!!!!!
+			}
+		});
 		JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, listType);
 		List<T> list = objectMapper.convertValue(patched, type);
 		PatchResult<List<T>> patchResult = new PatchResult<List<T>>(list, generateETagHeaderValue(patched));
