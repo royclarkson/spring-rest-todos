@@ -45,7 +45,7 @@ import com.github.fge.jsonpatch.PatchListenerAdapter;
  * @param <I> The ID type of the entity.
  */
 public abstract class JsonPatchControllerSupport<T, I> {
-	private static final Logger logger = LoggerFactory.getLogger(MainController.class);
+	private static final Logger logger = LoggerFactory.getLogger(TodoController.class);
 
 	private final ObjectMapper objectMapper = new ObjectMapper();
 

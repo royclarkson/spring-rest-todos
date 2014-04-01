@@ -75,7 +75,7 @@ public class MainControllerTest {
 	private TodoRepository repository;
 
 	@InjectMocks
-	MainController mainController;
+	TodoController mainController;
 
 	private MockMvc mvc;
 

@@ -49,4 +49,5 @@ public class Application extends WebMvcConfigurerAdapter {
 	public ShallowEtagHeaderFilter etagFilter() {
 		return new ShallowEtagHeaderFilter();
 	}
+	
 }

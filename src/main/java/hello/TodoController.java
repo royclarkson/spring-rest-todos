@@ -39,18 +39,13 @@ import com.github.fge.jsonpatch.JsonPatchException;
  */
 @RestController
 @RequestMapping("/todos")
-public class MainController {
+public class TodoController {
 
 	private TodoRepository repository;
 	
 	@Autowired
-	public MainController(TodoRepository repository) {
+	public TodoController(TodoRepository repository) {
 		this.repository = repository;
-	}
-
-	@RequestMapping("/")
-	public String home() {
-		return "Todo List";
 	}
 
 	@RequestMapping(method = RequestMethod.GET, produces = "application/json")
