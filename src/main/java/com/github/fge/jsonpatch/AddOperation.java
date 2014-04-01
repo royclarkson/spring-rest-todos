@@ -94,6 +94,7 @@ public final class AddOperation
         if (!parentNode.isContainerNode())
             throw new JsonPatchException(BUNDLE.getMessage(
                 "jsonPatch.parentNotContainer"));
+        listener.add(node, path);
         return parentNode.isArray()
             ? addToArray(path, node)
             : addToObject(path, node);

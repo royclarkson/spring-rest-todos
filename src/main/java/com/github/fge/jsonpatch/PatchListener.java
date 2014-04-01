@@ -5,6 +5,10 @@ import com.github.fge.jackson.jsonpointer.JsonPointer;
 
 public interface PatchListener {
 
-	void remove(JsonNode node, JsonPointer path);
+  void add(JsonNode node, JsonPointer path);
+  
+  void remove(JsonNode node, JsonPointer path);
+  
+  void replace(JsonNode node, JsonPointer path, JsonNode value);
 
 }

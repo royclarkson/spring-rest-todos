@@ -75,6 +75,7 @@ public final class ReplaceOperation
             ((ObjectNode) parent).put(rawToken, replacement);
         else
             ((ArrayNode) parent).set(Integer.parseInt(rawToken), replacement);
+        listener.replace(node, path, value);
         return ret;
     }
 }

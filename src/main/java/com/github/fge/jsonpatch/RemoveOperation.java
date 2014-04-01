@@ -52,7 +52,6 @@ public final class RemoveOperation
     public JsonNode apply(final JsonNode node, PatchListener listener)
         throws JsonPatchException
     {
-        listener.remove(node, path);
         if (path.isEmpty())
             return MissingNode.getInstance();
         if (path.path(node).isMissingNode())
@@ -65,6 +64,7 @@ public final class RemoveOperation
             ((ObjectNode) parentNode).remove(raw);
         else
             ((ArrayNode) parentNode).remove(Integer.parseInt(raw));
+        listener.remove(node, path);
         return ret;
     }
 
