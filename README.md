@@ -1,5 +1,7 @@
 # Spring REST Todos
 
+[![Build Status](https://drone.io/github.com/royclarkson/spring-rest-todos/status.png)](https://drone.io/github.com/royclarkson/spring-rest-todos/latest)
+
 A simple todo list example built with Spring
 
 ## Build and Run
