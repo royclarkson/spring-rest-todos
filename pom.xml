@@ -10,13 +10,10 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>1.0.0.RC4</version>
+		<version>1.0.0.RELEASE</version>
 	</parent>
 
 	<properties>
-		<!-- use UTF-8 for everything -->
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<start-class>hello.Application</start-class>
 	</properties>
 
@@ -51,11 +48,13 @@
 			<groupId>com.jayway.jsonpath</groupId>
 			<artifactId>json-path</artifactId>
 			<version>0.8.1</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.jayway.jsonpath</groupId>
 			<artifactId>json-path-assert</artifactId>
 			<version>0.8.1</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -70,15 +69,15 @@
 
 	<repositories>
 		<repository>
-			<id>spring-milestones</id>
-			<url>http://repo.spring.io/libs-milestone</url>
+			<id>spring-release</id>
+			<url>http://repo.spring.io/libs-release</url>
 		</repository>
 	</repositories>
 
 	<pluginRepositories>
 		<pluginRepository>
-			<id>spring-milestones</id>
-			<url>http://repo.spring.io/libs-milestone</url>
+			<id>spring-release</id>
+			<url>http://repo.spring.io/libs-release</url>
 		</pluginRepository>
 	</pluginRepositories>
 
