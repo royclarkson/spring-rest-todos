@@ -6,6 +6,6 @@ module.exports = fluent(function(context) {
 	return context
 		.add('todos@controller', TodosController)
 		.add('todos@model', function() {
-			return new JsonPatch('http://localhost:8080/todos');
+			return new JsonPatch('/todos');
 		});
 });
