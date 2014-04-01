@@ -13,7 +13,7 @@ apply plugin: "spring-boot"
 apply plugin: "war"
 
 jar {
-	baseName = "spring-rest-json-patch"
+	baseName = "spring-rest-todos"
 	version =  "0.1.0"
 }
 
@@ -24,9 +24,14 @@ repositories {
 
 dependencies {
 	compile("org.springframework.boot:spring-boot-starter-web")
+	compile("org.springframework.boot:spring-boot-starter-data-jpa")
+	compile("com.h2database:h2")
 	compile("com.fasterxml.jackson.core:jackson-databind")
 	compile("com.github.fge:json-patch:1.5");
+	compile("commons-lang:commons-lang:2.6")
 	testCompile("org.springframework.boot:spring-boot-starter-test")
+	testCompile("com.jayway.jsonpath:json-path:0.8.1")
+	testCompile("com.jayway.jsonpath:json-path-assert:0.8.1")
 }
 
 task wrapper(type: Wrapper) { gradleVersion = "1.11" }
