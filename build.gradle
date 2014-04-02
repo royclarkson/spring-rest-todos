@@ -1,17 +1,20 @@
 buildscript {
 	repositories {
-		maven { url "http://repo.spring.io/libs-milestone" }
+		maven { url "http://repo.spring.io/libs-release" }
 		mavenLocal()
 	}
-	dependencies { classpath("org.springframework.boot:spring-boot-gradle-plugin:1.0.0.RC4") }
+	dependencies { classpath("org.springframework.boot:spring-boot-gradle-plugin:1.0.0.RELEASE") }
 }
 
 apply plugin: "java"
 apply plugin: "eclipse"
+apply plugin: "eclipse-wtp"
 apply plugin: "idea"
 apply plugin: "spring-boot"
 apply plugin: "war"
-apply plugin: 'eclipse-wtp'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 
 jar {
 	baseName = "spring-rest-todos"
@@ -20,7 +23,7 @@ jar {
 
 repositories {
 	mavenCentral()
-	maven { url "http://repo.spring.io/libs-milestone" }
+	maven { url "http://repo.spring.io/libs-release" }
 	mavenLocal()
 }
 
