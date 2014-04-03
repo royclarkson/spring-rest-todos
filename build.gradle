@@ -40,3 +40,12 @@ dependencies {
 }
 
 task wrapper(type: Wrapper) { gradleVersion = "1.11" }
+
+task bowerInstall(type:Exec) {
+	logging.captureStandardOutput LogLevel.INFO
+	logging.captureStandardError LogLevel.LIFECYCLE
+	workingDir './src/main/resources/public'
+	commandLine 'bower', 'install'
+}
+
+war.dependsOn bowerInstall
