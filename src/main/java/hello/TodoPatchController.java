@@ -43,8 +43,8 @@ public class TodoPatchController extends JsonPatchControllerSupport<Todo, Long> 
 	}
 	
 	@Override
-	protected void saveEntity(Todo todo) {
-		repository.save(todo);
+	protected Todo saveEntity(Todo todo) {
+		return repository.save(todo);
 	}
 	
 	@Override
@@ -53,13 +53,16 @@ public class TodoPatchController extends JsonPatchControllerSupport<Todo, Long> 
 	}
 	
 	@Override
-	protected void saveEntityList(List<Todo> entityList) {
-		repository.save(entityList);
+	protected List<Todo> saveEntityList(List<Todo> entityList) {
+	  System.out.println("IN: " + entityList);
+		List<Todo> saved = repository.save(entityList);
+		System.out.println("OUT:  " + saved);
+    return saved;
 	}
 	
 	@Override
-	protected void deleteEntity(Long id) {
-		repository.delete(id);
+	protected void deleteEntity(Todo todo) {
+	  repository.delete(todo);
 	}
 	
 }

@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -37,6 +38,7 @@ import com.github.fge.jackson.jsonpointer.JsonPointer;
 import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.PatchListenerAdapter;
+import com.github.fge.jsonpatch.diff.JsonDiff;
 
 /**
  * REST controllers can extend this abstract class to support handling of JSON Patch requests against a given resource type.
@@ -57,13 +59,17 @@ public abstract class JsonPatchControllerSupport<T, I> {
 	
 	@RequestMapping(method=RequestMethod.PATCH, 
 					consumes={"application/json", "application/json-patch+json"}, 
-					produces = "application/json")
-	public ResponseEntity<Void> patchList(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
+					produces={"application/json", "application/json-patch+json"})
+	public ResponseEntity<JsonNode> patchList(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
 		PatchResult<List<T>> patchResult = performMatch(patch, ifMatch, getEntityList(), clazz);
-		saveEntityList(patchResult.getEntity());
+		List<T> savedEntityList = saveEntityList(patchResult.getEntity());
+		JsonNode savedEntityListJson = objectMapper.convertValue(savedEntityList, JsonNode.class);
+		String etag = generateETagHeaderValue(savedEntityListJson);
+		JsonNode diff = JsonDiff.asJson(patchResult.getPatchedNode(), savedEntityListJson);
 		HttpHeaders headers = new HttpHeaders();
-		headers.setETag(patchResult.getETag());
-		return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
+		headers.setContentType(new MediaType("application", "json-patch+json"));
+		headers.setETag(etag);
+		return new ResponseEntity<JsonNode>(diff, headers, HttpStatus.NO_CONTENT);
 	}
 
 	@RequestMapping(
@@ -73,9 +79,19 @@ public abstract class JsonPatchControllerSupport<T, I> {
 			produces = "application/json")
 	public ResponseEntity<Void> patchEntity(I id, JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
 		PatchResult<T> patchResult = performMatch(patch, ifMatch, getEntity(id));
-		saveEntity(patchResult.getEntity());
+		T savedEntity = saveEntity(patchResult.getEntity());
+
+		// 1. convert savedEntity to JSON
+		JsonNode savedEntityJson = objectMapper.convertValue(savedEntity, JsonNode.class);
+		
+		// 2. calculate etag from savedEntity's JSON, *NOT* from patchResult (the saved may have IDs that the other doesn't)
+    String etag = generateETagHeaderValue(savedEntityJson);
+
+		// 3. calculate a diff between the savedEntity's JSON and the patchedEntity's JSON.
+		// 4. return the diff as application/json-patch+json
+		
 		HttpHeaders headers = new HttpHeaders();
-		headers.setETag(patchResult.getETag());
+		headers.setETag(etag);
 		return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
 	}
 	
@@ -94,28 +110,32 @@ public abstract class JsonPatchControllerSupport<T, I> {
 	// hooks for persistence
 	protected abstract T getEntity(I id);
 	
-	protected abstract void saveEntity(T entityList);
+	protected abstract T saveEntity(T entityList);
 
 	protected abstract List<T> getEntityList();
 	
-	protected abstract void saveEntityList(List<T> entityList);
+	protected abstract List<T> saveEntityList(List<T> entityList);
 	
-	protected abstract void deleteEntity(I id);
+	protected abstract void deleteEntity(T entity);
 	
 	// private helpers
-	private PatchResult<List<T>> performMatch(JsonPatch patch, String ifMatch, List<T> entity, Class<T> listType) throws JsonPatchException, ETagMismatchException {
+	private PatchResult<List<T>> performMatch(JsonPatch patch, String ifMatch, List<T> entity, final Class<T> listType) throws JsonPatchException, ETagMismatchException {
 		JsonNode original = asJsonNodeIfMatch(entity, ifMatch);
 		JsonNode patched = patch.apply(original, new PatchListenerAdapter() {
 			@Override
 			public void remove(JsonNode node, JsonPointer path) {
 				JsonNode target = path.get(node);
-				Long id = target.get("id").longValue();
-				deleteEntity((I) id); // TODO: HACKY!!!!!!!!!!!!!!!!
+				
+				//
+				// TODO: If I can get this into an entity form, then we can delete(entity) instead of delete(id)
+				//
+				T entity = null; // TODO: SOMEHOW GET THE NODE INTO AN OBJECT
+				deleteEntity(entity);
 			}
 		});
 		JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, listType);
 		List<T> list = objectMapper.convertValue(patched, type);
-		PatchResult<List<T>> patchResult = new PatchResult<List<T>>(list, generateETagHeaderValue(patched));
+		PatchResult<List<T>> patchResult = new PatchResult<List<T>>(list, patched);
 		return patchResult;
 	}
 
@@ -123,7 +143,7 @@ public abstract class JsonPatchControllerSupport<T, I> {
 		JsonNode original = asJsonNodeIfMatch(entity, ifMatch);
 		JsonNode patched = patch.apply(original);
 		T list = objectMapper.convertValue(patched, clazz);
-		PatchResult<T> patchResult = new PatchResult<T>(list, generateETagHeaderValue(patched));
+		PatchResult<T> patchResult = new PatchResult<T>(list, patched);
 		return patchResult;
 	}
 
@@ -146,19 +166,19 @@ public abstract class JsonPatchControllerSupport<T, I> {
 
 	private static class PatchResult<T> {
 		private final T entity;
-		private final String etag;
+		private final JsonNode patchedNode;
 
-		public PatchResult(T entity, String etag) {
+		public PatchResult(T entity, JsonNode patchedNode) {
 			this.entity = entity;
-			this.etag = etag;
+			this.patchedNode = patchedNode;
 		}
 		
 		public T getEntity() {
 			return entity;
 		}
 		
-		public String getETag() {
-			return etag;
+		public JsonNode getPatchedNode() {
+		  return patchedNode;
 		}
 	}
 	

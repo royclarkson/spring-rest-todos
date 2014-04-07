@@ -36,6 +36,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.context.WebApplicationContext;
@@ -81,40 +82,39 @@ public class PatchCollectionTest {
 	public void patchAddNewTodoAtEnd() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3);
-		expected.add(new Todo(4L, "d", false));
-		performPatchRequest("patch-add-todo-at-end", initial, expected, "\"00c05eb5a529b248712fbeaad0ccf2994\"");
+		expected.add(new Todo(null, "d", false));
+		List<Todo> saved = getTodoList(3);
+		saved.add(new Todo(4L, "d", false));
+		performPatchRequest("patch-add-todo-at-end", "response-add-todo-at-end", initial, expected, saved, "\"00c05eb5a529b248712fbeaad0ccf2994\"");
 	}
 
 	@Test
 	public void patchAddNewTodoAtBeginning() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = new ArrayList<Todo>();
-		expected.add(new Todo(4L, "d", false));
+		expected.add(new Todo(null, "d", false));
 		expected.addAll(getTodoList(3));
-		performPatchRequest("patch-add-todo-at-beginning", initial, expected, "\"0acfa4a7106f27bf444360469392e0fac\"");
+		List<Todo> saved = new ArrayList<Todo>();
+		saved.add(new Todo(4L, "d", false));
+		saved.addAll(getTodoList(3));
+		performPatchRequest("patch-add-todo-at-beginning", "response-add-todo-at-beginning", initial, expected, saved, "\"0acfa4a7106f27bf444360469392e0fac\"");
 	}
 	
 	
 	//
 	// Operation: "replace"
-	//
-	// NOTE: The replace operation is expected to replace an item at the index specified in the patch operation path.
-	//       This will work fine so long as the resource list doesn't change. However, the list could change between
-	//       the time that the client creates the patch and the time the patch is applied. Thus, the item that the
-	//       client intends to replace may no longer be at the same index. Consequently, the replace operation may
-	//       replace the wrong item.
 	@Test
 	public void patchOneComplete() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3, 1);
-		performPatchRequest("patch-replace-single-todo-complete", initial, expected, "\"0f39e48479e2253330de0e4c5d6f393e9\"");
+		performPatchRequest("patch-replace-single-todo-complete", "response-replace-single-todo-complete", initial, expected, expected, "\"0f39e48479e2253330de0e4c5d6f393e9\"");
 	}
 
 	@Test
 	public void patchAllComplete() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3, 0, 1, 2);
-		performPatchRequest("patch-replace-all-todo-complete", initial, expected, "\"02607190d7f23f1e9b435a4f2665299bb\"");
+		performPatchRequest("patch-replace-all-todo-complete", "response-replace-all-todo-complete", initial, expected, expected, "\"02607190d7f23f1e9b435a4f2665299bb\"");
 	}
 	
 	@Test
@@ -124,7 +124,7 @@ public class PatchCollectionTest {
 		expected.add(new Todo(1L, "a", false));
 		expected.add(new Todo(2L, "I've changed", false));
 		expected.add(new Todo(3L, "c", false));
-		performPatchRequest("patch-replace-single-todo-description", initial, expected, "\"065c350be6ff14ba6024a42322d745639\"");
+		performPatchRequest("patch-replace-single-todo-description", "response-replace-single-todo-description", initial, expected, expected, "\"065c350be6ff14ba6024a42322d745639\"");
 	}
 
 	@Test
@@ -134,7 +134,7 @@ public class PatchCollectionTest {
 		expected.add(new Todo(1L, "I've changed", false));
 		expected.add(new Todo(2L, "Me too", false));
 		expected.add(new Todo(3L, "Me three", false));
-		performPatchRequest("patch-replace-all-todo-description", initial, expected, "\"0809f6a9ae65916a112cc5a4f6211d85a\"");
+		performPatchRequest("patch-replace-all-todo-description", "response-replace-all-todo-description", initial, expected, expected, "\"0809f6a9ae65916a112cc5a4f6211d85a\"");
 	}
 
 	
@@ -149,12 +149,16 @@ public class PatchCollectionTest {
 		
 		// This passes, but only because the mock repository is being called as expected.
 		// It does not work in reality, though, because the patch only saves the 2 remaining items, not
-		performPatchRequest("patch-remove-todo", initial, expected, "\"0bca2dadff5254d909aa72e0d83bed261\"");
+		performPatchRequest("patch-remove-todo", "response-remove-todo", initial, expected, expected, "\"0bca2dadff5254d909aa72e0d83bed261\"");
 	}
 	
 	
 	//
 	// Operation: "move"
+	//
+	// TODO: A move on a collection resource should essentially be a no-op. It should not be a remove-then-add.
+	//       Doing a remove-then-add would essentially leave everything except for the ID of the moved item unchanged.
+	//       Since the server assigns IDs, the new ID wouldn't even give the resulting list the order that the client desired.
 	//
 	
 	
@@ -162,6 +166,9 @@ public class PatchCollectionTest {
 	//
 	// Operation: "copy"
 	//
+	// TODO: Copy may be problematic because the new item will have the same ID as the original. Saving an object with the same ID
+	//       will update the original, not create a new item. The fix would be to null out the copy's ID. But if the object is to
+	//       be opaque, then how will we know which property to null out?
 	
 	
 	
@@ -186,16 +193,17 @@ public class PatchCollectionTest {
 		verify(repository, never()).save(any(initial.getClass()));
 	}
 
-	// private helpers
-	private void performPatchRequest(String patchJson, List<Todo> initial, List<Todo> expected, String expectedETag)
-			throws Exception, IOException {
+	private void performPatchRequest(String patchJson, String responseJson, List<Todo> initial, List<Todo> expected, List<Todo> saved,String expectedETag) throws Exception, IOException {
 		when(repository.findAll()).thenReturn(initial);
+		when(repository.save(expected)).thenReturn(saved);
 		mvc.perform(patch("/todos")
 				.content(jsonResource(patchJson))
 				.header("If-Match", "\"0c2218ebd99cc6cb63ff716a470fa8242\"")
 				.contentType(new MediaType("application", "json-patch+json")))
 				.andExpect(status().isNoContent())
-				.andExpect(header().string("ETag", expectedETag));
+				.andExpect(header().string("ETag", expectedETag))
+				.andExpect(header().string("Content-Type", "application/json-patch+json"))
+				.andExpect(MockMvcResultMatchers.content().string(jsonResource(responseJson)));
 		verify(repository).save(expected);
 	}
 	
