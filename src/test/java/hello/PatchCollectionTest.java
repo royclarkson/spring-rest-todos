@@ -200,7 +200,7 @@ public class PatchCollectionTest {
 				.content(jsonResource(patchJson))
 				.header("If-Match", "\"0c2218ebd99cc6cb63ff716a470fa8242\"")
 				.contentType(new MediaType("application", "json-patch+json")))
-				.andExpect(status().isNoContent())
+				.andExpect(status().isOk())
 				.andExpect(header().string("ETag", expectedETag))
 				.andExpect(header().string("Content-Type", "application/json-patch+json"))
 				.andExpect(MockMvcResultMatchers.content().string(jsonResource(responseJson)));

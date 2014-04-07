@@ -69,7 +69,7 @@ public abstract class JsonPatchControllerSupport<T, I> {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(new MediaType("application", "json-patch+json"));
 		headers.setETag(etag);
-		return new ResponseEntity<JsonNode>(diff, headers, HttpStatus.NO_CONTENT);
+		return new ResponseEntity<JsonNode>(diff, headers, HttpStatus.OK);
 	}
 
 	@RequestMapping(

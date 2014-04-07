@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TodoPatchController extends JsonPatchControllerSupport<Todo, Long> {
 
 	private TodoRepository repository;
-	
+
 	@Autowired
 	public TodoPatchController(TodoRepository repository) {
 		super(Todo.class);
@@ -41,28 +41,26 @@ public class TodoPatchController extends JsonPatchControllerSupport<Todo, Long> 
 	protected Todo getEntity(Long id) {
 		return repository.findOne(id);
 	}
-	
+
 	@Override
 	protected Todo saveEntity(Todo todo) {
 		return repository.save(todo);
 	}
-	
+
 	@Override
 	protected List<Todo> getEntityList() {
 		return repository.findAll();
 	}
-	
+
 	@Override
 	protected List<Todo> saveEntityList(List<Todo> entityList) {
-	  System.out.println("IN: " + entityList);
 		List<Todo> saved = repository.save(entityList);
-		System.out.println("OUT:  " + saved);
-    return saved;
+		return saved;
 	}
-	
+
 	@Override
 	protected void deleteEntity(Todo todo) {
-	  repository.delete(todo);
+		repository.delete(todo);
 	}
-	
+
 }
