@@ -44,7 +44,8 @@ public class TodoPatchController extends JsonPatchControllerSupport<Todo, Long> 
 
 	@Override
 	protected Todo saveEntity(Todo todo) {
-		return repository.save(todo);
+		Todo saved = repository.save(todo);
+		return saved;
 	}
 
 	@Override

@@ -25,6 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -33,6 +34,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.github.fge.jackson.jsonpointer.JsonPointer;
 import com.github.fge.jsonpatch.JsonPatch;
@@ -49,7 +52,7 @@ import com.github.fge.jsonpatch.diff.JsonDiff;
 public abstract class JsonPatchControllerSupport<T, I> {
 	private static final Logger logger = LoggerFactory.getLogger(TodoController.class);
 
-	private final ObjectMapper objectMapper = new ObjectMapper();
+	private final ObjectMapper objectMapper = new ObjectMapper(); //.setSerializationInclusion(Include.NON_NULL);
 
 	private Class<T> clazz;
 
@@ -57,19 +60,16 @@ public abstract class JsonPatchControllerSupport<T, I> {
 		this.clazz = clazz;
 	}
 	
-	@RequestMapping(method=RequestMethod.PATCH, 
-					consumes={"application/json", "application/json-patch+json"}, 
-					produces={"application/json", "application/json-patch+json"})
+	@RequestMapping(
+			method=RequestMethod.PATCH, 
+			consumes={"application/json", "application/json-patch+json"}, 
+			produces={"application/json", "application/json-patch+json"})
 	public ResponseEntity<JsonNode> patchList(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
 		PatchResult<List<T>> patchResult = performMatch(patch, ifMatch, getEntityList(), clazz);
 		List<T> savedEntityList = saveEntityList(patchResult.getEntity());
 		JsonNode savedEntityListJson = objectMapper.convertValue(savedEntityList, JsonNode.class);
-		String etag = generateETagHeaderValue(savedEntityListJson);
 		JsonNode diff = JsonDiff.asJson(patchResult.getPatchedNode(), savedEntityListJson);
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(new MediaType("application", "json-patch+json"));
-		headers.setETag(etag);
-		return new ResponseEntity<JsonNode>(diff, headers, HttpStatus.OK);
+		return responseEntity(generateETagHeaderValue(savedEntityListJson), diff);
 	}
 
 	@RequestMapping(
@@ -77,22 +77,20 @@ public abstract class JsonPatchControllerSupport<T, I> {
 			method=RequestMethod.PATCH, 
 			consumes={"application/json", "application/json-patch+json"}, 
 			produces = "application/json")
-	public ResponseEntity<Void> patchEntity(I id, JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
+	public ResponseEntity<JsonNode> patchEntity(@PathVariable("id") I id, JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
 		PatchResult<T> patchResult = performMatch(patch, ifMatch, getEntity(id));
 		T savedEntity = saveEntity(patchResult.getEntity());
-
-		// 1. convert savedEntity to JSON
 		JsonNode savedEntityJson = objectMapper.convertValue(savedEntity, JsonNode.class);
-		
-		// 2. calculate etag from savedEntity's JSON, *NOT* from patchResult (the saved may have IDs that the other doesn't)
-    String etag = generateETagHeaderValue(savedEntityJson);
+		JsonNode diff = JsonDiff.asJson(patchResult.getPatchedNode(), savedEntityJson);
+		return responseEntity(generateETagHeaderValue(savedEntityJson), diff);
+	}
 
-		// 3. calculate a diff between the savedEntity's JSON and the patchedEntity's JSON.
-		// 4. return the diff as application/json-patch+json
-		
+	private ResponseEntity<JsonNode> responseEntity(String etag, JsonNode diff) {
 		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(new MediaType("application", "json-patch+json"));
 		headers.setETag(etag);
-		return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
+		ResponseEntity<JsonNode> responseEntity = new ResponseEntity<JsonNode>(diff, headers, HttpStatus.OK);
+		return responseEntity;
 	}
 	
 	@ExceptionHandler(JsonPatchException.class)
@@ -140,16 +138,30 @@ public abstract class JsonPatchControllerSupport<T, I> {
 	}
 
 	private PatchResult<T> performMatch(JsonPatch patch, String ifMatch, T entity) throws JsonPatchException, ETagMismatchException {
-		JsonNode original = asJsonNodeIfMatch(entity, ifMatch);
-		JsonNode patched = patch.apply(original);
-		T list = objectMapper.convertValue(patched, clazz);
-		PatchResult<T> patchResult = new PatchResult<T>(list, patched);
-		return patchResult;
+		try {
+			JsonNode original = asJsonNodeIfMatch(entity, ifMatch);
+			JsonNode patched = patch.apply(original);
+			T list = objectMapper.convertValue(patched, clazz);
+			PatchResult<T> patchResult = new PatchResult<T>(list, patched);
+			return patchResult;
+		} catch (IllegalArgumentException iae) {
+			Throwable cause = iae.getCause();
+			if (cause instanceof UnrecognizedPropertyException) {
+				UnrecognizedPropertyException upe = (UnrecognizedPropertyException) cause;
+				throw new JsonPatchException("Cannot add property " + upe.getPathReference());
+			} else if (cause instanceof InvalidFormatException) {
+				InvalidFormatException ife = (InvalidFormatException) cause;
+				throw new JsonPatchException("Cannot add property " + ife.getPathReference());
+			}
+			throw iae;
+		}
 	}
 
 	private JsonNode asJsonNodeIfMatch(Object o, String ifMatch) throws ETagMismatchException {
 		JsonNode json = objectMapper.convertValue(o, JsonNode.class);
 		String etag = generateETagHeaderValue(json);
+		System.out.println(etag);
+		System.out.println(ifMatch);
 		if (ifMatch == null || ifMatch.equals(etag)) {
 			return json;
 		}

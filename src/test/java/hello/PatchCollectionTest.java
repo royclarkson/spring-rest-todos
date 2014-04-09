@@ -85,7 +85,7 @@ public class PatchCollectionTest {
 		expected.add(new Todo(null, "d", false));
 		List<Todo> saved = getTodoList(3);
 		saved.add(new Todo(4L, "d", false));
-		performPatchRequest("patch-add-todo-at-end", "response-add-todo-at-end", initial, expected, saved, "\"00c05eb5a529b248712fbeaad0ccf2994\"");
+		performPatchRequest("patch-list-add-to-end", "response-list-add-to-end", initial, expected, saved, "\"00c05eb5a529b248712fbeaad0ccf2994\"");
 	}
 
 	@Test
@@ -97,7 +97,7 @@ public class PatchCollectionTest {
 		List<Todo> saved = new ArrayList<Todo>();
 		saved.add(new Todo(4L, "d", false));
 		saved.addAll(getTodoList(3));
-		performPatchRequest("patch-add-todo-at-beginning", "response-add-todo-at-beginning", initial, expected, saved, "\"0acfa4a7106f27bf444360469392e0fac\"");
+		performPatchRequest("patch-list-add-to-beginning", "response-list-add-to-beginning", initial, expected, saved, "\"0acfa4a7106f27bf444360469392e0fac\"");
 	}
 	
 	
@@ -107,14 +107,14 @@ public class PatchCollectionTest {
 	public void patchOneComplete() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3, 1);
-		performPatchRequest("patch-replace-single-todo-complete", "response-replace-single-todo-complete", initial, expected, expected, "\"0f39e48479e2253330de0e4c5d6f393e9\"");
+		performPatchRequest("patch-list-replace-single-item", "response-emptyPatch", initial, expected, expected, "\"0f39e48479e2253330de0e4c5d6f393e9\"");
 	}
 
 	@Test
 	public void patchAllComplete() throws Exception {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3, 0, 1, 2);
-		performPatchRequest("patch-replace-all-todo-complete", "response-replace-all-todo-complete", initial, expected, expected, "\"02607190d7f23f1e9b435a4f2665299bb\"");
+		performPatchRequest("patch-list-replace-all-items", "response-emptyPatch", initial, expected, expected, "\"02607190d7f23f1e9b435a4f2665299bb\"");
 	}
 	
 	@Test
@@ -124,7 +124,7 @@ public class PatchCollectionTest {
 		expected.add(new Todo(1L, "a", false));
 		expected.add(new Todo(2L, "I've changed", false));
 		expected.add(new Todo(3L, "c", false));
-		performPatchRequest("patch-replace-single-todo-description", "response-replace-single-todo-description", initial, expected, expected, "\"065c350be6ff14ba6024a42322d745639\"");
+		performPatchRequest("patch-list-replace-single-item-description", "response-emptyPatch", initial, expected, expected, "\"065c350be6ff14ba6024a42322d745639\"");
 	}
 
 	@Test
@@ -134,7 +134,7 @@ public class PatchCollectionTest {
 		expected.add(new Todo(1L, "I've changed", false));
 		expected.add(new Todo(2L, "Me too", false));
 		expected.add(new Todo(3L, "Me three", false));
-		performPatchRequest("patch-replace-all-todo-description", "response-replace-all-todo-description", initial, expected, expected, "\"0809f6a9ae65916a112cc5a4f6211d85a\"");
+		performPatchRequest("patch-list-replace-all-items-description", "response-emptyPatch", initial, expected, expected, "\"0809f6a9ae65916a112cc5a4f6211d85a\"");
 	}
 
 	
@@ -146,10 +146,7 @@ public class PatchCollectionTest {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3);
 		expected.remove(0);
-		
-		// This passes, but only because the mock repository is being called as expected.
-		// It does not work in reality, though, because the patch only saves the 2 remaining items, not
-		performPatchRequest("patch-remove-todo", "response-remove-todo", initial, expected, expected, "\"0bca2dadff5254d909aa72e0d83bed261\"");
+		performPatchRequest("patch-list-remove-items", "response-emptyPatch", initial, expected, expected, "\"0bca2dadff5254d909aa72e0d83bed261\"");
 	}
 	
 	
@@ -160,8 +157,7 @@ public class PatchCollectionTest {
 	//       Doing a remove-then-add would essentially leave everything except for the ID of the moved item unchanged.
 	//       Since the server assigns IDs, the new ID wouldn't even give the resulting list the order that the client desired.
 	//
-	
-	
+
 	
 	//
 	// Operation: "copy"
@@ -186,7 +182,7 @@ public class PatchCollectionTest {
 		List<Todo> initial = getTodoList(3);
 		when(repository.findAll()).thenReturn(initial);
 		mvc.perform(patch("/todos")
-				.content(jsonResource("patch-replace-single-todo-complete"))
+				.content(jsonResource("patch-list-replace-single-item"))
 				.header("If-Match", "\"0c2218ebd99cc6cb63ff716a470fa8241\"")
 				.contentType(new MediaType("application", "json-patch+json")))
 				.andExpect(status().isConflict());
