@@ -20,5 +20,8 @@
     "wire": "git@github.com:briancavalier/wire-next.git#crave",
     "cola": "git@github.com:cujojs/cola.git#document-sync",
     "rest": "~1"
+  },
+  "resolutions": {
+    "when": "~3"
   }
 }
