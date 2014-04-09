@@ -13,6 +13,8 @@
         <input name="description" placeholder="Add a todo" autofocus/>
         <input name="complete" type="checkbox" disabled style="display: none"/>
         <button type="submit">Add</button>
+        <button type="button" data-on-click="todos@controller.completeAll">Complete all</button>
+        <button type="button" data-on-click="todos@controller.removeCompleted">Remove completed</button>
     </form>
 
     <section data-path="todos">
@@ -21,6 +23,7 @@
                 <input type="hidden" name="id" />
                 <input type="checkbox" name="complete"/>
                 <input name="description"/>
+                <button class="remove" data-on-click="todos@controller.remove">&times;</button>
             </li>
         </ul>
     </section>
