@@ -15,6 +15,7 @@
  */
 package hello;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -123,11 +124,13 @@ public abstract class JsonPatchControllerSupport<T, I> {
 			@Override
 			public void remove(JsonNode node, JsonPointer path) {
 				JsonNode target = path.get(node);
-				
-				//
-				// TODO: If I can get this into an entity form, then we can delete(entity) instead of delete(id)
-				//
-				T entity = null; // TODO: SOMEHOW GET THE NODE INTO AN OBJECT
+
+				T entity = null;
+				try {
+					entity = objectMapper.readValue(target.toString(), listType);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 				deleteEntity(entity);
 			}
 		});
