@@ -50,7 +50,7 @@ import com.github.fge.jsonpatch.diff.JsonDiff;
  * @param <I> The ID type of the entity.
  */
 public abstract class JsonPatchControllerSupport<T, I> {
-	private static final Logger logger = LoggerFactory.getLogger(TodoController.class);
+	private static final Logger logger = LoggerFactory.getLogger(JsonPatchControllerSupport.class);
 
 	private final ObjectMapper objectMapper = new ObjectMapper(); //.setSerializationInclusion(Include.NON_NULL);
 
