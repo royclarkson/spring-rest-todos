@@ -3,7 +3,7 @@ buildscript {
 		maven { url "http://repo.spring.io/libs-release" }
 		mavenLocal()
 	}
-	dependencies { classpath("org.springframework.boot:spring-boot-gradle-plugin:1.0.0.RELEASE") }
+	dependencies { classpath("org.springframework.boot:spring-boot-gradle-plugin:1.0.1.RELEASE") }
 }
 
 apply plugin: "java"
