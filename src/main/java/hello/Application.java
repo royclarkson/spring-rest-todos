@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -34,7 +35,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 public class Application extends WebMvcConfigurerAdapter {
 
 	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args);
+		ApplicationContext ctx = SpringApplication.run(Application.class, args);
+		TodoRepository repository = ctx.getBean(TodoRepository.class);
+		repository.save(new Todo(1L, "a", false));
+		repository.save(new Todo(2L, "b", false));
+		repository.save(new Todo(3L, "c", false));
 	}
 
 	
