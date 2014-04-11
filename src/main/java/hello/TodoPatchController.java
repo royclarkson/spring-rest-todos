@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * @author Roy Clarkson
  * @author Craig Walls
+ * @author Greg L. Turnquist
  */
 @RestController
 @RequestMapping("/todos")
@@ -49,13 +50,13 @@ public class TodoPatchController extends JsonPatchControllerSupport<Todo, Long> 
 	}
 
 	@Override
-	protected List<Todo> getEntityList() {
+	protected Iterable<Todo> getEntityList() {
 		return repository.findAll();
 	}
 
 	@Override
-	protected List<Todo> saveEntityList(List<Todo> entityList) {
-		List<Todo> saved = repository.save(entityList);
+	protected Iterable<Todo> saveEntityList(List<Todo> entityList) {
+		Iterable<Todo> saved = repository.save(entityList);
 		return saved;
 	}
 

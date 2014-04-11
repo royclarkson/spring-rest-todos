@@ -47,6 +47,7 @@ import com.github.fge.jsonpatch.diff.JsonDiff;
 /**
  * REST controllers can extend this abstract class to support handling of JSON Patch requests against a given resource type.
  * @author Craig Walls
+ * @author Greg L. Turnquist
  * @param <T> The entity type of the resource that this controller deals with.
  * @param <I> The ID type of the entity.
  */
@@ -67,7 +68,7 @@ public abstract class JsonPatchControllerSupport<T, I> {
 			produces={"application/json", "application/json-patch+json"})
 	public ResponseEntity<JsonNode> patchList(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
 		PatchResult<List<T>> patchResult = performMatch(patch, ifMatch, getEntityList(), clazz);
-		List<T> savedEntityList = saveEntityList(patchResult.getEntity());
+		Iterable<T> savedEntityList = saveEntityList(patchResult.getEntity());
 		JsonNode savedEntityListJson = objectMapper.convertValue(savedEntityList, JsonNode.class);
 		JsonNode diff = JsonDiff.asJson(patchResult.getPatchedNode(), savedEntityListJson);
 		return responseEntity(generateETagHeaderValue(savedEntityListJson), diff);
@@ -111,14 +112,14 @@ public abstract class JsonPatchControllerSupport<T, I> {
 	
 	protected abstract T saveEntity(T entityList);
 
-	protected abstract List<T> getEntityList();
+	protected abstract Iterable<T> getEntityList();
 	
-	protected abstract List<T> saveEntityList(List<T> entityList);
+	protected abstract Iterable<T> saveEntityList(List<T> entityList);
 	
 	protected abstract void deleteEntity(T entity);
 	
 	// private helpers
-	private PatchResult<List<T>> performMatch(JsonPatch patch, String ifMatch, List<T> entity, final Class<T> listType) throws JsonPatchException, ETagMismatchException {
+	private PatchResult<List<T>> performMatch(JsonPatch patch, String ifMatch, Iterable<T> entity, final Class<T> listType) throws JsonPatchException, ETagMismatchException {
 		JsonNode original = asJsonNodeIfMatch(entity, ifMatch);
 		JsonNode patched = patch.apply(original, new PatchListenerAdapter() {
 			@Override

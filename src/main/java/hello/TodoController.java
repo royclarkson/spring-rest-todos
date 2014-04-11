@@ -36,6 +36,7 @@ import com.github.fge.jsonpatch.JsonPatchException;
 /**
  * @author Roy Clarkson
  * @author Craig Walls
+ * @author Greg L. Turnquist
  */
 @RestController
 @RequestMapping("/todos")
@@ -49,10 +50,10 @@ public class TodoController {
 	}
 
 	@RequestMapping(method = RequestMethod.GET, produces = "application/json")
-	public ResponseEntity<List<Todo>> list() {
+	public ResponseEntity<Iterable<Todo>> list() {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Accept-Patch", "application/json-patch+json");
-		return new ResponseEntity<List<Todo>>(repository.findAll(), headers, HttpStatus.OK);
+		return new ResponseEntity<Iterable<Todo>>(repository.findAll(), headers, HttpStatus.OK);
 	}
 	
 	@RequestMapping(method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
