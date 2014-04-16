@@ -17,7 +17,6 @@
 package hello;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -31,7 +30,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
+import com.github.fge.jsonpatch.diff.JsonDiff;
 
 /**
  * @author Roy Clarkson
@@ -43,10 +45,13 @@ import com.github.fge.jsonpatch.JsonPatchException;
 public class TodoController {
 
 	private TodoRepository repository;
-	
+
+	private ObjectMapper objectMapper;
+
 	@Autowired
-	public TodoController(TodoRepository repository) {
+	public TodoController(TodoRepository repository, ObjectMapper objectMapper) {
 		this.repository = repository;
+		this.objectMapper = objectMapper;
 	}
 
 	@RequestMapping(method = RequestMethod.GET, produces = "application/json")
@@ -75,6 +80,14 @@ public class TodoController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable("id") long id) {
 		repository.delete(id);
+	}
+
+	@RequestMapping(value = "/diff", method = RequestMethod.POST, consumes = "application/json", produces = {
+			"application/json", "application/json-patch+json" })
+	public JsonNode diff2(@RequestBody JsonNode data) {
+		JsonNode source = data.get("source");
+		JsonNode target = data.get("target");
+		return JsonDiff.asJson(source, target);
 	}
 
 }
