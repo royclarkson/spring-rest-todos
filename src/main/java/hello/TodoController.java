@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.diff.JsonDiff;
 
@@ -84,10 +85,18 @@ public class TodoController {
 
 	@RequestMapping(value = "/diff", method = RequestMethod.POST, consumes = "application/json", produces = {
 			"application/json", "application/json-patch+json" })
-	public JsonNode diff2(@RequestBody JsonNode data) {
+	public JsonNode diff(@RequestBody JsonNode data) {
 		JsonNode source = data.get("source");
 		JsonNode target = data.get("target");
 		return JsonDiff.asJson(source, target);
+	}
+
+	@RequestMapping(value = "/patch", method = RequestMethod.POST, consumes = "application/json", produces = {
+			"application/json", "application/json-patch+json" })
+	public JsonNode patch(@RequestBody JsonNode data) throws IOException, JsonPatchException {
+		JsonNode source = data.get("source");
+		JsonPatch patch = JsonPatch.fromJson(data.get("patch"));
+		return patch.apply(source);
 	}
 
 }
