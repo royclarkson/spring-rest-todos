@@ -15,10 +15,13 @@
  */
 package hello;
 
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -146,10 +149,19 @@ public class PatchCollectionTest {
 		List<Todo> initial = getTodoList(3);
 		List<Todo> expected = getTodoList(3);
 		expected.remove(0);
-		performPatchRequest("patch-list-remove-items", "response-emptyPatch", initial, expected, expected, "\"0bca2dadff5254d909aa72e0d83bed261\"");
+		performPatchRequest("patch-list-remove-item", "response-emptyPatch", initial, expected, expected, "\"0bca2dadff5254d909aa72e0d83bed261\"");
 	}
-	
-	
+
+	@Test
+	public void deleteMany() throws Exception {
+		List<Todo> initial = getTodoList(3);
+		List<Todo> expected = getTodoList(3);
+		expected.remove(2);
+		expected.remove(0);
+		performPatchRequest("patch-list-remove-items", "response-emptyPatch", initial, expected, expected, "\"051aca9ebade482cb45146213d8a6af39\"");
+		
+	}
+
 	//
 	// Operation: "move"
 	//
@@ -177,6 +189,7 @@ public class PatchCollectionTest {
 	//
 	// ETag mismatch
 	//
+	@SuppressWarnings("unchecked")
 	@Test
 	public void eTagMismatch() throws Exception {
 		List<Todo> initial = getTodoList(3);
@@ -189,7 +202,7 @@ public class PatchCollectionTest {
 		verify(repository, never()).save(any(initial.getClass()));
 	}
 
-	private void performPatchRequest(String patchJson, String responseJson, List<Todo> initial, List<Todo> expected, List<Todo> saved,String expectedETag) throws Exception, IOException {
+	private void performPatchRequest(String patchJson, String responseJson, List<Todo> initial, List<Todo> expected, List<Todo> saved, String expectedETag) throws Exception, IOException {
 		when(repository.findAll()).thenReturn(initial);
 		when(repository.save(expected)).thenReturn(saved);
 		mvc.perform(patch("/todos")
