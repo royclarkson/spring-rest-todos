@@ -16,13 +16,13 @@
     "tests"
   ],
   "dependencies": {
-    "when": "report-unhandled-rejections",
+    "when": "dev",
     "rave": "*",
     "wire": "git@github.com:briancavalier/wire-next.git#crave",
-    "cola": "git@github.com:cujojs/cola.git#document-sync",
+    "cola": "document-sync",
     "rest": "~1"
   },
   "resolutions": {
-    "when": "report-unhandled-rejections"
+    "when": "dev"
   }
 }
