@@ -2,6 +2,7 @@
 <html data-debug>
 <head>
     <title>Todos</title>
+    <link rel="stylesheet" href="base.css"/>
     <script src="bower_components/rave/rave.js"></script>
 </head>
 <body data-bard>
@@ -23,7 +24,7 @@
                 <input type="hidden" name="id" />
                 <input type="checkbox" name="complete"/>
                 <input name="description"/>
-                <button class="remove" data-on-click="todos@controller.remove">&times;</button>
+                <span data-on-click="todos@controller.remove">&times;</span>
             </li>
         </ul>
     </section>
