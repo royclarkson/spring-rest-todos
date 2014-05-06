@@ -43,12 +43,12 @@ public class Application extends WebMvcConfigurerAdapter {
 	}
 
 	
-	@Override
-	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
-		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
-		messageConverters.add(new MappingJackson2HttpMessageConverter());
-		argumentResolvers.add(new JsonPatchMethodArgumentResolver(messageConverters));
-	}
+//	@Override
+//	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
+//		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
+//		messageConverters.add(new MappingJackson2HttpMessageConverter());
+//		argumentResolvers.add(new JsonPatchMethodArgumentResolver(messageConverters));
+//	}
 	
 	@Bean
 	public ShallowEtagHeaderFilter etagFilter() {

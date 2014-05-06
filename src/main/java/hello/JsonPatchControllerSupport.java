@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -66,7 +67,7 @@ public abstract class JsonPatchControllerSupport<T, I> {
 			method=RequestMethod.PATCH, 
 			consumes={"application/json", "application/json-patch+json"}, 
 			produces={"application/json", "application/json-patch+json"})
-	public ResponseEntity<JsonNode> patchList(JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
+	public ResponseEntity<JsonNode> patchList(@RequestBody JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
 		PatchResult<List<T>> patchResult = performMatch(patch, ifMatch, getEntityList(), clazz);
 		Iterable<T> savedEntityList = saveEntityList(patchResult.getEntity());
 		JsonNode savedEntityListJson = objectMapper.convertValue(savedEntityList, JsonNode.class);
@@ -79,7 +80,7 @@ public abstract class JsonPatchControllerSupport<T, I> {
 			method=RequestMethod.PATCH, 
 			consumes={"application/json", "application/json-patch+json"}, 
 			produces = "application/json")
-	public ResponseEntity<JsonNode> patchEntity(@PathVariable("id") I id, JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
+	public ResponseEntity<JsonNode> patchEntity(@PathVariable("id") I id, @RequestBody JsonPatch patch, @RequestHeader(value="If-Match", required=false) String ifMatch) throws Exception {
 		PatchResult<T> patchResult = performMatch(patch, ifMatch, getEntity(id));
 		T savedEntity = saveEntity(patchResult.getEntity());
 		JsonNode savedEntityJson = objectMapper.convertValue(savedEntity, JsonNode.class);

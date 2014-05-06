@@ -62,7 +62,6 @@ public class PatchEntityTest {
 		messageConverters.add(new MappingJackson2HttpMessageConverter());
 		mvc = MockMvcBuilders
 				.standaloneSetup(controller)
-				.setCustomArgumentResolvers(new JsonPatchMethodArgumentResolver(messageConverters))
 				.build();
 	}
 
