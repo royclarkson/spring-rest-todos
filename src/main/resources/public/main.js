@@ -1,16 +1,20 @@
-var registry = require('rest/mime/registry');
-var json = require('rest/mime/type/application/json');
-var fluent = require('wire/config/fluent');
-var JsonPatch = require('cola/data/JsonPatch');
+var fab = require('fabulous');
+var rest = require('fabulous/rest');
+var Sync = require('fabulous/data/Sync');
+var Observer = require('fabulous/data/Observer');
+var PatchClient = require('fabulous/data/PatchClient');
+//var DSClient = require('fabulous/data/DSClient');
+//var RestClient = require('fabulous/data/RestClient');
+
 var TodosController = require('./TodosController');
 
-module.exports = fluent(function(context) {
-	return context
-		.add('@init', function() {
-			return registry.register('application/json-patch+json', json)
-		})
-		.add('todos@controller', TodosController)
-		.add('todos@model', function() {
-			return new JsonPatch('/todos');
-		});
-});
+exports.main = fab.run(document.body, todosApp);
+
+function todosApp(node, context) {
+	context.controller = new TodosController([]);
+
+	new Sync([
+		new PatchClient(rest.at('/todos')),
+		Observer.fromProperty('todos', context.controller)
+	], 1000).run(context.scheduler);
+}

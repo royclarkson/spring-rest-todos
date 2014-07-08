@@ -1,13 +1,19 @@
 module.exports = TodosController;
 
-function TodosController() {}
+//var counter = 1;
+//var base = '' + Date.now() + Math.floor(Math.random() * 1000);
 
-TodosController.prototype.add = function(todos, todo) {
-	todos.push(todo);
+function TodosController(todos) {
+	this.todos = todos;
+}
+
+TodosController.prototype.add = function(todo) {
+//	todo.id = base + (counter++);
+	this.todos.push(todo);
 };
 
-TodosController.prototype.remove = function(todos, todo) {
-	todos.some(function(t, i, todos) {
+TodosController.prototype.remove = function(todo) {
+	this.todos.some(function(t, i, todos) {
 		if(todo.id === t.id) {
 			todos.splice(i, 1);
 			return true;
@@ -15,15 +21,14 @@ TodosController.prototype.remove = function(todos, todo) {
 	});
 };
 
-TodosController.prototype.removeCompleted = function(todos) {
-	return todos.filter(function(todo) {
+TodosController.prototype.removeCompleted = function() {
+	this.todos = this.todos.filter(function(todo) {
 		return !todo.complete;
 	});
 };
 
-TodosController.prototype.completeAll = function(todos) {
-	todos.forEach(function(todo) {
+TodosController.prototype.completeAll = function() {
+	this.todos.forEach(function(todo) {
 		todo.complete = true;
 	});
 };
-
