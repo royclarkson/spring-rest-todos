@@ -2,7 +2,13 @@ package hello;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import javax.servlet.http.HttpSession;
 
@@ -63,6 +69,7 @@ public class TodoPatchController {
 
 		// TODO: This is very hacky...find better way that doesn't involve baking up a new array and
 		//       saving *all* items at once
+		// BEGIN VERY HACKY CODE
 		ArrayList<Todo> patchedTodos = new ArrayList<Todo>();
 		Iterator<JsonNode> elements = source.elements();
 		while(elements.hasNext()) {
@@ -71,6 +78,12 @@ public class TodoPatchController {
 			patchedTodos.add(todo);
 		}
 		todoRepository.save(patchedTodos);
+
+		List<Todo> allTodosList = (List<Todo>) allTodos;
+		allTodosList.removeAll(patchedTodos);
+		todoRepository.delete(allTodosList);
+		// END VERY HACKY CODE
+		
 		
 		// diff shadow against source to calcuate returnPatch
 		JsonNode returnPatch = JsonDiff.asJson(shadow, source);
