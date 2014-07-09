@@ -1,68 +1,96 @@
-/*
- * Copyright 2014 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package hello;
 
-import java.util.List;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.logging.Log;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * @author Roy Clarkson
- * @author Craig Walls
- * @author Greg L. Turnquist
- */
+import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.fge.jsonpatch.JsonPatch;
+import com.github.fge.jsonpatch.JsonPatchException;
+import com.github.fge.jsonpatch.diff.JsonDiff;
+
 @RestController
 @RequestMapping("/todos")
-public class TodoPatchController extends JsonPatchControllerSupport<Todo, Long> {
+public class TodoPatchController {
 
-	private TodoRepository repository;
+	private final ObjectMapper objectMapper = new ObjectMapper(); //.setSerializationInclusion(Include.NON_NULL);
+
+	private TodoRepository todoRepository;
 
 	@Autowired
-	public TodoPatchController(TodoRepository repository) {
-		super(Todo.class);
-		this.repository = repository;
+	public TodoPatchController(TodoRepository todoRepository) {
+		this.todoRepository = todoRepository;
 	}
+	
+	
+	// TODO: Consider if Spring Session is a suitable option here or if there should instead be some sort of ShadowStore implementation
+	//       rather than relying on user-centric HttpSession.
+	@RequestMapping(
+			method=RequestMethod.PATCH, 
+			consumes={"application/json", "application/json-patch+json"}, 
+			produces={"application/json", "application/json-patch+json"})
+	public ResponseEntity<JsonNode> patch(JsonPatch jsonPatch, HttpSession session) 
+			throws JsonPatchException, IOException {
+		
+		// TODO: if jsonPatch is empty, don't bother applying it or saving the patched items
+		
+		// get shadow from session / calculate it if it isn't in session 
+		JsonNode shadow = (JsonNode) session.getAttribute("/todos/shadow");
 
-	@Override
-	protected Todo getEntity(Long id) {
-		return repository.findOne(id);
+		Iterable<Todo> allTodos = getEntityList();
+		JsonNode source = asJsonNode(allTodos);
+		if (shadow == null) {
+			shadow = source;
+		}
+
+		// apply patch to shadow
+		shadow = jsonPatch.apply(shadow);
+
+		// apply patch to source
+		source = jsonPatch.apply(source);
+
+		// TODO: This is very hacky...find better way that doesn't involve baking up a new array and
+		//       saving *all* items at once
+		ArrayList<Todo> patchedTodos = new ArrayList<Todo>();
+		Iterator<JsonNode> elements = source.elements();
+		while(elements.hasNext()) {
+			JsonNode todoNode = elements.next();
+			Todo todo = objectMapper.treeToValue(todoNode, Todo.class);
+			patchedTodos.add(todo);
+		}
+		todoRepository.save(patchedTodos);
+		
+		// diff shadow against source to calcuate returnPatch
+		JsonNode returnPatch = JsonDiff.asJson(shadow, source);
+		
+		// apply return patch to shadow
+		shadow = JsonPatch.fromJson(returnPatch).apply(shadow);
+		
+		// update session with new shadow
+		session.setAttribute("/todos/shadow", shadow);
+		
+		// return returnPatch
+		return new ResponseEntity<JsonNode>(returnPatch, HttpStatus.OK);
 	}
-
-	@Override
-	protected Todo saveEntity(Todo todo) {
-		Todo saved = repository.save(todo);
-		return saved;
-	}
-
-	@Override
+	
+	
 	protected Iterable<Todo> getEntityList() {
-		return repository.findAll();
+		return todoRepository.findAll();
 	}
-
-	@Override
-	protected Iterable<Todo> saveEntityList(List<Todo> entityList) {
-		Iterable<Todo> saved = repository.save(entityList);
-		return saved;
+	
+	private JsonNode asJsonNode(Object o) {
+		return objectMapper.convertValue(o, JsonNode.class);
 	}
-
-	@Override
-	protected void deleteEntity(Todo todo) {
-		repository.delete(todo);
-	}
-
 }

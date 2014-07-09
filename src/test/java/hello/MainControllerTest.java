@@ -66,6 +66,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = Application.class)
+@Ignore
 public class MainControllerTest {
 
 	@Autowired
