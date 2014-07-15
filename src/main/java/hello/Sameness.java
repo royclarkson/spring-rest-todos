@@ -1,6 +1,6 @@
 package hello;
 
-public interface SamenessTest {
+public interface Sameness {
 
 	boolean isSame(Object o1, Object o2);
 	

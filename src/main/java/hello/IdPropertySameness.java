@@ -5,7 +5,7 @@ import java.lang.reflect.Field;
 import org.springframework.util.ObjectUtils;
 
 
-public class IdPropertySamenessTest implements SamenessTest {
+public class IdPropertySameness implements Sameness {
 
 	@Override
 	public boolean isSame(Object o1, Object o2) {

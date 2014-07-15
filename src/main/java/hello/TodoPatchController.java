@@ -10,6 +10,7 @@ import javax.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.diff.JsonDiff;
@@ -32,7 +34,7 @@ public class TodoPatchController {
 
 	private ShadowStore<JsonNode> shadowStore;
 	
-	private SamenessTest samenessTest = new IdPropertySamenessTest(); // TODO: Inject instead of hardcode
+	private Sameness samenessTest = new IdPropertySameness(); // TODO: Inject instead of hardcode
 
 	@Autowired
 	public TodoPatchController(TodoRepository todoRepository, ShadowStore<JsonNode> shadowStore) {
@@ -47,11 +49,8 @@ public class TodoPatchController {
 			method=RequestMethod.PATCH, 
 			consumes={"application/json", "application/json-patch+json"}, 
 			produces={"application/json", "application/json-patch+json"})
-	public ResponseEntity<JsonNode> patch(JsonPatch jsonPatch, HttpSession session) 
+	public ResponseEntity<JsonNode> patch(JsonPatch jsonPatch, @RequestBody ArrayNode patchNode, HttpSession session) 
 			throws JsonPatchException, IOException {
-		
-		// TODO: if jsonPatch is empty, don't bother applying it or saving the patched items
-		// Q: How to know if jsonPatch is empty
 		
 		// get shadow from session / calculate it if it isn't in session 
 		JsonNode shadow = shadowStore.getShadow("/todos/shadow");
@@ -70,39 +69,43 @@ public class TodoPatchController {
 			shadow = source;
 		}
 
-		// apply patch to shadow
-		shadow = jsonPatch.apply(shadow);
-
-		// apply patch to source
-		source = jsonPatch.apply(source);
-
-
-		// convert patched source back to a set of actual Todo items
-		Set<Todo> patchedTodos = nodeToSet(source);
-		
-		
-		// determine which items are modified/added and should be saved
-		Set<Todo> itemsToSave = new LinkedHashSet<Todo>(patchedTodos);
-		itemsToSave.removeAll(allTodos);
-		
-		// save the modified/added items
-		if (itemsToSave.size() > 0) {
-			todoRepository.save(itemsToSave);
-		}
-
-		// REMOVE ITEMS
-		Set<Todo> itemsToRemove = new LinkedHashSet<Todo>(allTodos);
-		for (Todo candidate : allTodos) {
-			for (Todo todo : patchedTodos) {
-				if (samenessTest.isSame(candidate, todo)) {
-					itemsToRemove.remove(candidate);
-					break;
+		// Don't bother applying patch if there's nothing in the patch.
+		if (patchNode.size() > 0) {
+	
+			// apply patch to shadow
+			shadow = jsonPatch.apply(shadow);
+	
+			// apply patch to source
+			source = jsonPatch.apply(source);
+	
+	
+			// convert patched source back to a set of actual Todo items
+			Set<Todo> patchedTodos = nodeToSet(source);
+			
+			
+			// determine which items are modified/added and should be saved
+			Set<Todo> itemsToSave = new LinkedHashSet<Todo>(patchedTodos);
+			itemsToSave.removeAll(allTodos);
+			
+			// save the modified/added items
+			if (itemsToSave.size() > 0) {
+				todoRepository.save(itemsToSave);
+			}
+	
+			// REMOVE ITEMS
+			Set<Todo> itemsToRemove = new LinkedHashSet<Todo>(allTodos);
+			for (Todo candidate : allTodos) {
+				for (Todo todo : patchedTodos) {
+					if (samenessTest.isSame(candidate, todo)) {
+						itemsToRemove.remove(candidate);
+						break;
+					}
 				}
 			}
-		}
-		
-		if (itemsToRemove.size() > 0) {
-			todoRepository.delete(itemsToRemove);
+			
+			if (itemsToRemove.size() > 0) {
+				todoRepository.delete(itemsToRemove);
+			}
 		}
 		
 		
