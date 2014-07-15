@@ -22,5 +22,4 @@ import org.springframework.data.repository.PagingAndSortingRepository;
  * @author Craig Walls
  * @author Greg L. Turnquist
  */
-public interface TodoRepository extends PagingAndSortingRepository<Todo, Long> {
-}
+public interface TodoRepository extends PagingAndSortingRepository<Todo, Long> {}

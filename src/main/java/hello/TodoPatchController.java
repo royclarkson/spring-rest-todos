@@ -1,18 +1,12 @@
 package hello;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.servlet.http.HttpSession;
 
-import org.apache.commons.logging.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,12 +14,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.diff.JsonDiff;
+import com.google.common.collect.Sets;
 
 @RestController
 @RequestMapping("/todos")
@@ -35,9 +30,14 @@ public class TodoPatchController {
 
 	private TodoRepository todoRepository;
 
+	private ShadowStore<JsonNode> shadowStore;
+	
+	private SamenessTest samenessTest = new IdPropertySamenessTest(); // TODO: Inject instead of hardcode
+
 	@Autowired
-	public TodoPatchController(TodoRepository todoRepository) {
+	public TodoPatchController(TodoRepository todoRepository, ShadowStore<JsonNode> shadowStore) {
 		this.todoRepository = todoRepository;
+		this.shadowStore = shadowStore;
 	}
 	
 	
@@ -51,11 +51,20 @@ public class TodoPatchController {
 			throws JsonPatchException, IOException {
 		
 		// TODO: if jsonPatch is empty, don't bother applying it or saving the patched items
+		// Q: How to know if jsonPatch is empty
 		
 		// get shadow from session / calculate it if it isn't in session 
-		JsonNode shadow = (JsonNode) session.getAttribute("/todos/shadow");
+		JsonNode shadow = shadowStore.getShadow("/todos/shadow");
 
-		Iterable<Todo> allTodos = getEntityList();
+		// we need the full list because that's what this resource is and because it's
+		// what we'll use to compare with the shadow to find any changes we need to
+		// send back to the client in a patch...so we need this resource.
+		// Unfortunately, it's a database hit (or a cache hit) to do it.
+		// There's really no way around this, but perhaps caching around the repository
+		// will make it better.
+		Set<Todo> allTodos = Sets.newLinkedHashSet(getEntityList());
+		
+		// get source as JsonNode of all Todo items
 		JsonNode source = asJsonNode(allTodos);
 		if (shadow == null) {
 			shadow = source;
@@ -67,22 +76,43 @@ public class TodoPatchController {
 		// apply patch to source
 		source = jsonPatch.apply(source);
 
-		// TODO: This is very hacky...find better way that doesn't involve baking up a new array and
-		//       saving *all* items at once
-		// BEGIN VERY HACKY CODE
-		ArrayList<Todo> patchedTodos = new ArrayList<Todo>();
-		Iterator<JsonNode> elements = source.elements();
-		while(elements.hasNext()) {
-			JsonNode todoNode = elements.next();
-			Todo todo = objectMapper.treeToValue(todoNode, Todo.class);
-			patchedTodos.add(todo);
-		}
-		todoRepository.save(patchedTodos);
 
-		List<Todo> allTodosList = (List<Todo>) allTodos;
-		allTodosList.removeAll(patchedTodos);
-		todoRepository.delete(allTodosList);
-		// END VERY HACKY CODE
+		// convert patched source back to a set of actual Todo items
+		Set<Todo> patchedTodos = nodeToSet(source);
+		
+		
+		// determine which items are modified/added and should be saved
+		Set<Todo> itemsToSave = new LinkedHashSet<Todo>(patchedTodos);
+		itemsToSave.removeAll(allTodos);
+		
+		// save the modified/added items
+		if (itemsToSave.size() > 0) {
+			todoRepository.save(itemsToSave);
+		}
+
+		// REMOVE ITEMS
+		Set<Todo> itemsToRemove = new LinkedHashSet<Todo>(allTodos);
+		for (Todo candidate : allTodos) {
+			for (Todo todo : patchedTodos) {
+				if (samenessTest.isSame(candidate, todo)) {
+					itemsToRemove.remove(candidate);
+					break;
+				}
+			}
+		}
+		
+		if (itemsToRemove.size() > 0) {
+			todoRepository.delete(itemsToRemove);
+		}
+		
+		
+		
+		// Up to this point, we've focused on applying the client-sent patch to the
+		// shadow.
+		// Now it's time to work the other direction, calculating the difference
+		// between the source and the shadow so we can communicate those changes to
+		// the client (and then updating the shadow accordingly).
+		
 		
 		
 		// diff shadow against source to calcuate returnPatch
@@ -92,10 +122,20 @@ public class TodoPatchController {
 		shadow = JsonPatch.fromJson(returnPatch).apply(shadow);
 		
 		// update session with new shadow
-		session.setAttribute("/todos/shadow", shadow);
+		shadowStore.putShadow("/todos/shadow", shadow);
 		
 		// return returnPatch
 		return new ResponseEntity<JsonNode>(returnPatch, HttpStatus.OK);
+	}
+
+
+	private Set<Todo> nodeToSet(JsonNode source) throws JsonProcessingException {
+		Set<Todo> patchedTodos;
+		patchedTodos = new LinkedHashSet<Todo>(source.size());
+		for(Iterator<JsonNode> elements = source.elements(); elements.hasNext();) {
+			patchedTodos.add(objectMapper.treeToValue(elements.next(), Todo.class));
+		}
+		return patchedTodos;
 	}
 	
 	
@@ -106,4 +146,5 @@ public class TodoPatchController {
 	private JsonNode asJsonNode(Object o) {
 		return objectMapper.convertValue(o, JsonNode.class);
 	}
+
 }
