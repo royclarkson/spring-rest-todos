@@ -13,7 +13,6 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.web.servlet.mvc.method.annotation.AbstractMessageConverterMethodProcessor;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jsonpatch.JsonPatch;
 
 public class JsonPatchMethodArgumentResolver extends AbstractMessageConverterMethodProcessor {
 
@@ -52,7 +51,7 @@ public class JsonPatchMethodArgumentResolver extends AbstractMessageConverterMet
 		}
 		
 		JsonNode jsonNode = (JsonNode) argument;
-		return null;
+		return JsonPatch.fromJsonNode(jsonNode);
 	}
 
 	

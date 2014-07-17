@@ -9,9 +9,9 @@ package hello.jsonpatch;
 
 public class AddOperation extends JsonPatchOperation {
 
-	private Object value;
+	private String value;
 
-	public AddOperation(String path, Object value) {
+	public AddOperation(String path, String value) {
 		super("add", path);
 		this.value = value;
 	}

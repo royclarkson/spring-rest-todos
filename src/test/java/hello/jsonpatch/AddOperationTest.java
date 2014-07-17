@@ -4,9 +4,7 @@ import static org.junit.Assert.*;
 import hello.Todo;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Test;
 
@@ -21,7 +19,7 @@ public class AddOperationTest {
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		
-		AddOperation add = new AddOperation("/1/complete", true);
+		AddOperation add = new AddOperation("/1/complete", "true");
 		add.perform(todos);
 		
 		assertTrue(todos.get(1).isComplete());
@@ -36,11 +34,7 @@ public class AddOperationTest {
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		
-		Map<String, Object> value = new HashMap<String, Object>();
-		value.put("description", "D");
-		value.put("complete", true);
-		
-		AddOperation add = new AddOperation("/1", value);
+		AddOperation add = new AddOperation("/1", "{\"description\":\"D\",\"complete\":true}");
 		add.perform(todos);
 		
 		assertEquals(4, todos.size());

@@ -18,7 +18,7 @@ public class ReplaceOperationTest {
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		
-		ReplaceOperation replace = new ReplaceOperation("/1/complete", true);
+		ReplaceOperation replace = new ReplaceOperation("/1/complete", "true");
 		replace.perform(todos);
 		
 		assertTrue(todos.get(1).isComplete());
@@ -32,7 +32,7 @@ public class ReplaceOperationTest {
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		
-		ReplaceOperation replace = new ReplaceOperation("/1/description", "BBB");
+		ReplaceOperation replace = new ReplaceOperation("/1/description", "\"BBB\"");
 		replace.perform(todos);
 
 		assertEquals("BBB", todos.get(1).getDescription());
@@ -46,7 +46,7 @@ public class ReplaceOperationTest {
 		todos.add(new Todo(2L, "B", false));
 		todos.add(new Todo(3L, "C", false));
 		
-		ReplaceOperation replace = new ReplaceOperation("/1/description", 22);
+		ReplaceOperation replace = new ReplaceOperation("/1/description", "22");
 		replace.perform(todos);
 
 		assertEquals("22", todos.get(1).getDescription());

@@ -1,28 +1,27 @@
 package hello;
 
+import hello.jsonpatch.JsonPatch;
+import hello.jsonpatch.JsonPatchException;
+
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.servlet.http.HttpSession;
 
+import org.apache.commons.lang.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.github.fge.jsonpatch.JsonPatch;
-import com.github.fge.jsonpatch.JsonPatchException;
-import com.github.fge.jsonpatch.diff.JsonDiff;
-import com.google.common.collect.Sets;
 
 @RestController
 @RequestMapping("/todos")
@@ -32,12 +31,12 @@ public class TodoPatchController {
 
 	private TodoRepository todoRepository;
 
-	private ShadowStore<JsonNode> shadowStore;
+	private ShadowStore<Object> shadowStore;
 	
 	private Sameness samenessTest = new IdPropertySameness(); // TODO: Inject instead of hardcode
 
 	@Autowired
-	public TodoPatchController(TodoRepository todoRepository, ShadowStore<JsonNode> shadowStore) {
+	public TodoPatchController(TodoRepository todoRepository, ShadowStore<Object> shadowStore) {
 		this.todoRepository = todoRepository;
 		this.shadowStore = shadowStore;
 	}
@@ -49,11 +48,11 @@ public class TodoPatchController {
 			method=RequestMethod.PATCH, 
 			consumes={"application/json", "application/json-patch+json"}, 
 			produces={"application/json", "application/json-patch+json"})
-	public ResponseEntity<JsonNode> patch(JsonPatch jsonPatch, @RequestBody ArrayNode patchNode, HttpSession session) 
+	public ResponseEntity<String> patch(JsonPatch jsonPatch, HttpSession session) 
 			throws JsonPatchException, IOException {
 		
 		// get shadow from session / calculate it if it isn't in session 
-		JsonNode shadow = shadowStore.getShadow("/todos/shadow");
+		List<Todo> shadow = (List<Todo>) shadowStore.getShadow("/todos/shadow");
 
 		// we need the full list because that's what this resource is and because it's
 		// what we'll use to compare with the shadow to find any changes we need to
@@ -61,34 +60,38 @@ public class TodoPatchController {
 		// Unfortunately, it's a database hit (or a cache hit) to do it.
 		// There's really no way around this, but perhaps caching around the repository
 		// will make it better.
-		Set<Todo> allTodos = Sets.newLinkedHashSet(getEntityList());
+		List<Todo> allTodos = (List<Todo>) getEntityList();
 		
 		// get source as JsonNode of all Todo items
-		JsonNode source = asJsonNode(allTodos);
+		List<Todo> source = deepCloneList(allTodos);
 		if (shadow == null) {
-			shadow = source;
+			shadow = deepCloneList(source);
 		}
 
 		// Don't bother applying patch if there's nothing in the patch.
-		if (patchNode.size() > 0) {
+		if (jsonPatch.size() > 0) {
 	
 			// apply patch to shadow
-			shadow = jsonPatch.apply(shadow);
+			shadow = (List<Todo>) jsonPatch.apply(shadow);
 	
 			// apply patch to source
-			source = jsonPatch.apply(source);
+			source = (List<Todo>) jsonPatch.apply(source);
 	
 	
 			// convert patched source back to a set of actual Todo items
-			Set<Todo> patchedTodos = nodeToSet(source);
+			System.out.println(source.getClass().getName());
+			List<Todo> patchedTodos = deepCloneList(source);
 			
 			
 			// determine which items are modified/added and should be saved
-			Set<Todo> itemsToSave = new LinkedHashSet<Todo>(patchedTodos);
+			List<Todo> itemsToSave = new ArrayList<Todo>(patchedTodos);
+			System.out.println("BEFORE:  " + itemsToSave);
+			
 			itemsToSave.removeAll(allTodos);
 			
 			// save the modified/added items
 			if (itemsToSave.size() > 0) {
+				System.out.println("AFTER:  " + itemsToSave);
 				todoRepository.save(itemsToSave);
 			}
 	
@@ -117,37 +120,36 @@ public class TodoPatchController {
 		// the client (and then updating the shadow accordingly).
 		
 		
+		// TODO: Implement diff so that we can uncomment the following lines
 		
-		// diff shadow against source to calcuate returnPatch
-		JsonNode returnPatch = JsonDiff.asJson(shadow, source);
-		
-		// apply return patch to shadow
-		shadow = JsonPatch.fromJson(returnPatch).apply(shadow);
-		
-		// update session with new shadow
-		shadowStore.putShadow("/todos/shadow", shadow);
+//		// diff shadow against source to calcuate returnPatch
+//		JsonNode returnPatch = JsonDiff.asJson(shadow, source);
+//		
+//		// apply return patch to shadow
+//		shadow = JsonPatch.fromJson(returnPatch).apply(shadow);
+//		
+//		// update session with new shadow
+//		shadowStore.putShadow("/todos/shadow", shadow);
 		
 		// return returnPatch
-		return new ResponseEntity<JsonNode>(returnPatch, HttpStatus.OK);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(new MediaType("application", "json-patch+json"));
+		ResponseEntity<String> responseEntity = new ResponseEntity<String>("[]", headers, HttpStatus.OK);
+		
+		return responseEntity;
 	}
 
 
-	private Set<Todo> nodeToSet(JsonNode source) throws JsonProcessingException {
-		Set<Todo> patchedTodos;
-		patchedTodos = new LinkedHashSet<Todo>(source.size());
-		for(Iterator<JsonNode> elements = source.elements(); elements.hasNext();) {
-			patchedTodos.add(objectMapper.treeToValue(elements.next(), Todo.class));
-		}
-		return patchedTodos;
-	}
-	
-	
 	protected Iterable<Todo> getEntityList() {
 		return todoRepository.findAll();
 	}
 	
-	private JsonNode asJsonNode(Object o) {
-		return objectMapper.convertValue(o, JsonNode.class);
+	private List<Todo> deepCloneList(List<Todo> original) {
+		List<Todo> copy = new ArrayList<Todo>(original.size());
+		for (Todo todo : original) {
+			copy.add((Todo) SerializationUtils.clone(todo));
+		}
+		return copy;
 	}
 
 }

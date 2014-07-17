@@ -5,20 +5,18 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
 @Component
-public class MapBasedShadowStore implements ShadowStore<JsonNode> {
+public class MapBasedShadowStore implements ShadowStore<Object> {
 
-	private Map<String, JsonNode> store = new HashMap<String, JsonNode>();
+	private Map<String, Object> store = new HashMap<String, Object>();
 	
 	@Override
-	public void putShadow(String resourcePath, JsonNode shadow) {		
+	public void putShadow(String resourcePath, Object shadow) {		
 		store.put(resourcePath, shadow);
 	}
 
 	@Override
-	public JsonNode getShadow(String resourcePath) {
+	public Object getShadow(String resourcePath) {
 		return store.get(resourcePath);
 	}
 

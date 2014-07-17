@@ -4,15 +4,18 @@ import hello.Todo;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 // TODO: After further thought, most/all of this class should be pushed into the JsonPatchOperation class.
 public class SpELPath {
 
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+	
 	private static final SpelExpressionParser SPEL_EXPRESSION_PARSER = new SpelExpressionParser();
 	
 	private Expression expression;
@@ -49,11 +52,16 @@ public class SpELPath {
 		return expression.getValue(target);
 	}
 	
-	public void setValue(Object target, Object value) {
+	public void setValue(Object target, String valueJson) {
 		try {
+			Object currentValue = expression.getValue(target);
+			Object value = MAPPER.readValue(valueJson, currentValue.getClass());
+			
 			expression.setValue(target, value);
 		} catch (SpelEvaluationException e) {
-			throw new JsonPatchException("Unable to set path '" + path + "' to value " + value);
+			throw new JsonPatchException("Unable to set path '" + path + "' to value " + valueJson);
+		} catch (Exception e) {
+			throw new JsonPatchException("Unable to set path '" + path + "' to value " + valueJson);
 		}
 	}
 	
@@ -63,29 +71,18 @@ public class SpELPath {
 			expression.setValue(target, value);
 		} else {
 			
-			if (value instanceof Map) {
-				// TODO: BIG DOMAIN-SPECIFIC HACK FOLLOWS
-				//
-				// Should NOT explicitly create an instance of Todo and add it to a List<Todo>
-				// 
-				// SHOULD...
-				//  Somehow determine the type of the object
-				//    - This is the hard part
-				//    - There's no clue in the JSON (nor should there be)
-				//    - There are minimal clues in the list itself (if the list is non-empty, fetch an item and check it's type)
-				//  Create an instance
-				//  Add it to the list
-				//
-				List<Todo> list = (List<Todo>) parentExpression.getValue(target);
-				Map<String, ?> valueMap = (Map<String, ?>) value;
-				Todo newTodo = new Todo(null, (String) valueMap.get("description"), (boolean) valueMap.get("complete"));
-				list.add(listIndex, newTodo);
-				//
-				// BIG HACK ENDS
-				//
-			} else {
+			try {
 				List<Object> list = (List<Object>) parentExpression.getValue(target);
-				list.add(listIndex, value);
+				if (value instanceof String) {
+					// BIG HACK HERE!!!
+					Todo newTodo = MAPPER.readValue((String) value, Todo.class);
+					list.add(listIndex, newTodo);
+					// BIG HACK ENDS!!!
+				} else {
+					list.add(listIndex, value);
+				}
+			} catch (Exception e) {
+				// TODO: HANDLE THIS BETTER!!!
 			}
 			
 		}

@@ -1,8 +1,7 @@
 package hello;
 
 import static java.util.Arrays.*;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.*;
@@ -15,17 +14,25 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-@SuppressWarnings("unchecked")
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes=EmbeddedDataSourceConfig.class)
+@Transactional
 public class TodoPatchControllerTest {
 
+	@Autowired
+	private TodoRepository repository;
+	
 	private static final MediaType JSON_PATCH = new MediaType("application", "json-patch+json");
 	
 	@Test
@@ -42,13 +49,21 @@ public class TodoPatchControllerTest {
 			.andExpect(content().contentType(JSON_PATCH))
 			.andExpect(status().isOk());
 		
-		// neither save nor delete should be called because nothing changed
-		verify(todoRepository, never()).delete(any(Iterable.class));
-		verify(todoRepository, never()).save(any(Iterable.class));
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(3, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("A", all.get(0).getDescription());
+		assertFalse(all.get(0).isComplete());
+		assertEquals(2L, all.get(1).getId().longValue());
+		assertEquals("B", all.get(1).getDescription());
+		assertFalse(all.get(1).isComplete());
+		assertEquals(3L, all.get(2).getId().longValue());
+		assertEquals("C", all.get(2).getDescription());
+		assertFalse(all.get(2).isComplete());
 	}
 
 	@Test
-	public void clientSendsSingleStatusChange() throws Exception {
+	public void patchSendsSingleStatusChange() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -61,13 +76,21 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, never()).delete(any(Iterable.class));		
-		verify(todoRepository, times(1)).save(any(Iterable.class));		
-		verify(todoRepository, times(1)).save(asSet(new Todo(2L, "B", true)));
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(3, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("A", all.get(0).getDescription());
+		assertFalse(all.get(0).isComplete());
+		assertEquals(2L, all.get(1).getId().longValue());
+		assertEquals("B", all.get(1).getDescription());
+		assertTrue(all.get(1).isComplete());
+		assertEquals(3L, all.get(2).getId().longValue());
+		assertEquals("C", all.get(2).getDescription());
+		assertFalse(all.get(2).isComplete());
 	}
 
 	@Test
-	public void clientSendsAStatusChangeAndADescriptionChangeForSameItem() throws Exception {
+	public void patchSendsAStatusChangeAndADescriptionChangeForSameItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -80,13 +103,21 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, never()).delete(any(Iterable.class));
-		verify(todoRepository, times(1)).save(any(Iterable.class));		
-		verify(todoRepository, times(1)).save(asSet(new Todo(2L, "BBB", true)));		
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(3, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("A", all.get(0).getDescription());
+		assertFalse(all.get(0).isComplete());
+		assertEquals(2L, all.get(1).getId().longValue());
+		assertEquals("BBB", all.get(1).getDescription());
+		assertTrue(all.get(1).isComplete());
+		assertEquals(3L, all.get(2).getId().longValue());
+		assertEquals("C", all.get(2).getDescription());
+		assertFalse(all.get(2).isComplete());
 	}
 
 	@Test
-	public void clientSendsAStatusChangeAndADescriptionChangeForDifferentItems() throws Exception {
+	public void patchSendsAStatusChangeAndADescriptionChangeForDifferentItems() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -99,13 +130,21 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, never()).delete(any(Iterable.class));
-		verify(todoRepository, times(1)).save(any(Iterable.class));		
-		verify(todoRepository, times(1)).save(asSet(new Todo(1L, "AAA", false), new Todo(2L, "B", true)));		
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(3, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("AAA", all.get(0).getDescription());
+		assertFalse(all.get(0).isComplete());
+		assertEquals(2L, all.get(1).getId().longValue());
+		assertEquals("B", all.get(1).getDescription());
+		assertTrue(all.get(1).isComplete());
+		assertEquals(3L, all.get(2).getId().longValue());
+		assertEquals("C", all.get(2).getDescription());
+		assertFalse(all.get(2).isComplete());
 	}
 
 	@Test
-	public void clientAddsAnItem() throws Exception {
+	public void patchAddsAnItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -118,13 +157,24 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, never()).delete(any(Iterable.class));
-		verify(todoRepository, times(1)).save(any(Iterable.class));		
-		verify(todoRepository, times(1)).save(asSet(new Todo(null, "D", false)));		
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(4, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("A", all.get(0).getDescription());
+		assertFalse(all.get(0).isComplete());
+		assertEquals(2L, all.get(1).getId().longValue());
+		assertEquals("B", all.get(1).getDescription());
+		assertFalse(all.get(1).isComplete());
+		assertEquals(3L, all.get(2).getId().longValue());
+		assertEquals("C", all.get(2).getDescription());
+		assertFalse(all.get(2).isComplete());
+		assertEquals(4L, all.get(3).getId().longValue());
+		assertEquals("D", all.get(3).getDescription());
+		assertFalse(all.get(3).isComplete());
 	}
 	
 	@Test
-	public void clientRemovesAnItem() throws Exception {
+	public void patchRemovesAnItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -137,13 +187,18 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, times(1)).delete(any(Iterable.class));
-		verify(todoRepository, times(1)).delete(asSet(new Todo(2L, "B", false)));		
-		verify(todoRepository, never()).save(any(Iterable.class));		
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(2, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("A", all.get(0).getDescription());
+		assertFalse(all.get(0).isComplete());
+		assertEquals(3L, all.get(1).getId().longValue());
+		assertEquals("C", all.get(1).getDescription());
+		assertFalse(all.get(1).isComplete());
 	}
 
 	@Test
-	public void clientRemovesTwoItems() throws Exception {
+	public void patchRemovesTwoItems() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -156,14 +211,16 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, times(1)).delete(any(Iterable.class));
-		verify(todoRepository, times(1)).delete(asSet(new Todo(2L, "B", false), new Todo(3L, "C", false)));		
-		verify(todoRepository, never()).save(any(Iterable.class));		
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(1, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("A", all.get(0).getDescription());
+		assertFalse(all.get(0).isComplete());
 	}
 
 
 	@Test
-	public void clientUpdatesStatusOnOneItemAndRemovesTwoOtherItems() throws Exception {
+	public void patchUpdatesStatusOnOneItemAndRemovesTwoOtherItems() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -176,14 +233,15 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, times(1)).delete(any(Iterable.class));
-		verify(todoRepository, times(1)).delete(asSet(new Todo(2L, "B", false), new Todo(3L, "C", false)));		
-		verify(todoRepository, times(1)).save(any(Iterable.class));		
-		verify(todoRepository, times(1)).save(asSet(new Todo(1L, "A", true)));		
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(1, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("A", all.get(0).getDescription());
+		assertTrue(all.get(0).isComplete());
 	}
 
 	@Test
-	public void clientRemovesTwoOtherItemsAndUpdatesStatusOnAnother() throws Exception {
+	public void patchRemovesTwoOtherItemsAndUpdatesStatusOnAnother() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -196,14 +254,15 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, times(1)).delete(any(Iterable.class));
-		verify(todoRepository, times(1)).delete(asSet(new Todo(1L, "A", false), new Todo(2L, "B", false)));		
-		verify(todoRepository, times(1)).save(any(Iterable.class));		
-		verify(todoRepository, times(1)).save(asSet(new Todo(3L, "C", true)));		
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(1, all.size());
+		assertEquals(3L, all.get(0).getId().longValue());
+		assertEquals("C", all.get(0).getDescription());
+		assertTrue(all.get(0).isComplete());
 	}
 
 	@Test
-	public void clientChangesItemStatusAndThenRemovesThatSameItem() throws Exception {
+	public void patchChangesItemStatusAndThenRemovesThatSameItem() throws Exception {
 		TodoRepository todoRepository = todoRepository();
 		MockMvc mvc = mockMvc(todoRepository);
 		
@@ -216,9 +275,14 @@ public class TodoPatchControllerTest {
 			.andExpect(content().string("[]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
-		verify(todoRepository, times(1)).delete(any(Iterable.class));
-		verify(todoRepository, times(1)).delete(asSet(new Todo(2L, "B", false)));		
-		verify(todoRepository, never()).save(any(Iterable.class));		
+		List<Todo> all = (List<Todo>) repository.findAll();
+		assertEquals(2, all.size());
+		assertEquals(1L, all.get(0).getId().longValue());
+		assertEquals("A", all.get(0).getDescription());
+		assertFalse(all.get(0).isComplete());
+		assertEquals(3L, all.get(1).getId().longValue());
+		assertEquals("C", all.get(1).getDescription());
+		assertFalse(all.get(1).isComplete());
 	}
 
 	
@@ -242,24 +306,24 @@ public class TodoPatchControllerTest {
 
 
 	private TodoRepository todoRepository() {
-		TodoRepository todoRepository = mock(TodoRepository.class);
-		List<Todo> todos = new ArrayList<Todo>();
-		todos.add(new Todo(1L, "A", false));
-		todos.add(new Todo(2L, "B", false));
-		todos.add(new Todo(3L, "C", false));
-		when(todoRepository.findAll()).thenReturn(todos);
-		return todoRepository;
+//		TodoRepository todoRepository = mock(TodoRepository.class);
+//		List<Todo> todos = new ArrayList<Todo>();
+//		todos.add(new Todo(1L, "A", false));
+//		todos.add(new Todo(2L, "B", false));
+//		todos.add(new Todo(3L, "C", false));
+//		when(todoRepository.findAll()).thenReturn(todos);
+		return repository;
 	}
 
 
 
 	private MockMvc mockMvc(TodoRepository todoRepository) {
-		ShadowStore<JsonNode> shadowStore = new MapBasedShadowStore();
+		ShadowStore<Object> shadowStore = new MapBasedShadowStore();
 		TodoPatchController controller = new TodoPatchController(todoRepository, shadowStore);
 		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
 		messageConverters.add(new MappingJackson2HttpMessageConverter());
 		MockMvc mvc = standaloneSetup(controller)
-				.setCustomArgumentResolvers(new JsonPatchMethodArgumentResolver(messageConverters))
+				.setCustomArgumentResolvers(new hello.jsonpatch.JsonPatchMethodArgumentResolver(messageConverters))
 				.build();
 		return mvc;
 	}

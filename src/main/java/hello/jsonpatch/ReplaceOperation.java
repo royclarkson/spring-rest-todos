@@ -3,9 +3,9 @@ package hello.jsonpatch;
 
 public class ReplaceOperation extends JsonPatchOperation {
 
-	private final Object value;
+	private final String value;
 
-	public ReplaceOperation(String path, Object value) {
+	public ReplaceOperation(String path, String value) {
 		super("replace", path);
 		this.value = value;
 	}
