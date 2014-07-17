@@ -164,8 +164,6 @@ public abstract class JsonPatchControllerSupport<T, I> {
 	private JsonNode asJsonNodeIfMatch(Object o, String ifMatch) throws ETagMismatchException {
 		JsonNode json = objectMapper.convertValue(o, JsonNode.class);
 		String etag = generateETagHeaderValue(json);
-		System.out.println(etag);
-		System.out.println(ifMatch);
 		if (ifMatch == null || ifMatch.equals(etag)) {
 			return json;
 		}

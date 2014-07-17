@@ -18,10 +18,8 @@ public class IdPropertySameness implements Sameness {
 			Object id2 = idField2.get(o2);
 			return ObjectUtils.nullSafeEquals(id1, id2);
 		} catch (NoSuchFieldException e) {
-			System.out.println("X");
 			return false;
 		} catch (IllegalAccessException e) {
-			System.out.println("Z: " + e);
 			return false;
 		}
 	}
