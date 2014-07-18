@@ -17,10 +17,10 @@ public class TestOperationTest {
 		todos.add(new Todo(2L, "B", true));
 		todos.add(new Todo(3L, "C", false));
 		
-		TestOperation test = new TestOperation("/0/complete", false);
+		TestOperation test = new TestOperation("/0/complete", "false");
 		test.perform(todos);
 
-		TestOperation test2 = new TestOperation("/1/complete", true);
+		TestOperation test2 = new TestOperation("/1/complete", "true");
 		test2.perform(todos);
 
 	}
@@ -33,7 +33,7 @@ public class TestOperationTest {
 		todos.add(new Todo(2L, "B", true));
 		todos.add(new Todo(3L, "C", false));
 		
-		TestOperation test = new TestOperation("/0/complete", true);
+		TestOperation test = new TestOperation("/0/complete", "true");
 		test.perform(todos);
 	}
 

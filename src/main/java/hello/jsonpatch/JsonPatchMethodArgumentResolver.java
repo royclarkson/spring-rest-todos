@@ -14,6 +14,11 @@ import org.springframework.web.servlet.mvc.method.annotation.AbstractMessageConv
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+/**
+ * Spring MVC method argument resolver that resolves a JSON request payload containing JSON Patch into a JsonPatch.
+ * 
+ * @author Craig Walls
+ */
 public class JsonPatchMethodArgumentResolver extends AbstractMessageConverterMethodProcessor {
 
 	public JsonPatchMethodArgumentResolver(List<HttpMessageConverter<?>> messageConverters) {

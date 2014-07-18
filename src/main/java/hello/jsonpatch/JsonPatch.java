@@ -4,23 +4,35 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
+/**
+ * Represents a JSON Patch.
+ * 
+ * @author Craig Walls
+ */
 public class JsonPatch {
 
 	private final List<JsonPatchOperation> operations;
 
-	@JsonCreator
-	public JsonPatch(List<JsonPatchOperation> operations) {
+	private JsonPatch(List<JsonPatchOperation> operations) {
 		this.operations = operations;
 	}
 	
+	/**
+	 * @return the number of operations that make up this patch.
+	 */
 	public int size() {
 		return operations.size();
 	}
 	
+	/**
+	 * Applies the JSON Patch to a given Object graph.
+	 * @param in the object graph to apply the patch to.
+	 * @return an object graph modified by the patch.
+	 * @throws JsonPatchException if there are any errors while applying the patch.
+	 */
 	public Object apply(Object in) throws JsonPatchException {
 		// TODO: Make defensive copy of in before performing operations so that
 		//       if any op fails, the original left untouched
@@ -33,8 +45,12 @@ public class JsonPatch {
 		return work;
 	}
 
+	/**
+	 * Constructs a JsonPatch object given a JsonNode.
+	 * @param jsonNode a JsonNode containing the JSON Patch
+	 * @return a JsonPatch
+	 */
 	public static JsonPatch fromJsonNode(JsonNode jsonNode) {
-		
 		if (!(jsonNode instanceof ArrayNode)) {
 			throw new IllegalArgumentException("JsonNode must be an instance of ArrayNode");
 		}

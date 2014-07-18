@@ -1,26 +1,33 @@
 package hello.jsonpatch;
 
-
-// TODO: Figure out what is the difference between "add" and "replace" when applied to Java object properties.
-//       Applied to JSON, there's certainly a difference.
-//       Applied to Java objects, not so much.
-//       When dealing with a Java object property, both add and replace essentially mean "set".
-//       When dealing with a Java collection, "add" means "insert" while "replace" means "replace"
-
+/**
+ * <p>JSON Patch "add" operation.</p>
+ * 
+ * <p>
+ * Adds a new value to the given "path".
+ * Will throw a JsonPatchException if the path is invalid or if the given value 
+ * is not assignable to the given path.
+ * </p>
+ * 
+ * @author Craig Walls
+ */
 public class AddOperation extends JsonPatchOperation {
 
 	private String value;
 
+	/**
+	 * Constructs the add operation
+	 * @param path The "path" property of the operation in the JSON Patch. (e.g., '/foo/bar/4')
+	 * @param value The "value" property of the operation in the JSON Patch. The String value should contain valid JSON.
+	 */
 	public AddOperation(String path, String value) {
 		super("add", path);
 		this.value = value;
 	}
 	
 	@Override
-	public void perform(Object targetObject) {
-		SpELPath spel = getSpELPath();
-		spel.addValue(targetObject, value);
+	void perform(Object targetObject) {
+		addValue(targetObject, value);
 	}
-
 	
 }

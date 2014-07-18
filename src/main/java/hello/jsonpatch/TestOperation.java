@@ -6,19 +6,34 @@ import org.springframework.util.ObjectUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-
+/**
+ * <p>JSON Patch "test" operation.</p>
+ * 
+ * <p>
+ * If the value given matches the value given at the path, the operation completes as a no-op.
+ * On the other hand, if the values do not match or if there are any errors interpreting the path,
+ * a JsonPatchException will be thrown.
+ * </p>
+ * 
+ * @author Craig Walls
+ */
 public class TestOperation extends JsonPatchOperation {
 
-	private final Object value;
+	private final String value;
 
-	public TestOperation(String path, Object value) {
+	/**
+	 * Constructs the test operation
+	 * @param path The "path" property of the operation in the JSON Patch. (e.g., '/foo/bar/4')
+	 * @param value The "value" property of the operation in the JSON Patch. The String value should contain valid JSON.
+	 */
+	public TestOperation(String path, String value) {
 		super("test", path);
 		this.value = value;
 	}
 	
 	@Override
-	public void perform(Object targetObject) {
-		Object targetValue = getSpELPath().getValue(targetObject);
+	void perform(Object targetObject) {
+		Object targetValue = getValue(targetObject);
 		
 		try {
 			// TODO: This conversion will prove useful in other operations, so it should probably be made part of the parent type
@@ -30,8 +45,6 @@ public class TestOperation extends JsonPatchOperation {
 		} catch (IOException e) {
 			throw new JsonPatchException("Test against path '" + path + "' failed");
 		}
-		
-		
 	}
 	
 }
