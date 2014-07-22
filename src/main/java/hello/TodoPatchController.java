@@ -1,13 +1,12 @@
 package hello;
 
+import hello.jsonpatch.JsonDiff;
 import hello.jsonpatch.JsonPatch;
 import hello.jsonpatch.JsonPatchException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.servlet.http.HttpSession;
 
@@ -21,13 +20,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @RestController
 @RequestMapping("/todos")
 public class TodoPatchController {
-
-	private final ObjectMapper objectMapper = new ObjectMapper(); //.setSerializationInclusion(Include.NON_NULL);
 
 	private TodoRepository todoRepository;
 
@@ -44,61 +41,47 @@ public class TodoPatchController {
 	
 	// TODO: Consider if Spring Session is a suitable option here or if there should instead be some sort of ShadowStore implementation
 	//       rather than relying on user-centric HttpSession.
+	@SuppressWarnings("unchecked")
 	@RequestMapping(
 			method=RequestMethod.PATCH, 
 			consumes={"application/json", "application/json-patch+json"}, 
 			produces={"application/json", "application/json-patch+json"})
-	public ResponseEntity<String> patch(JsonPatch jsonPatch, HttpSession session) 
-			throws JsonPatchException, IOException {
+	public ResponseEntity<JsonNode> patch(JsonPatch jsonPatch, HttpSession session) 
+			throws JsonPatchException, IOException, Exception {
 		
-		// get shadow from session / calculate it if it isn't in session 
-		List<Todo> shadow = (List<Todo>) shadowStore.getShadow("/todos/shadow");
+		// we need 5 copies:
+		// - The original, as retrieved from the database. Remains untouched for comparison purposes.
+		// - The source, cloned from the original so that when the patch is applied the original remains untouched
+		// - The shadow, retrieved from the shadow store or cloned from the original if not already in the shadow store.
+		// - itemsToSave, a clone of source, trimmed down to only contain the items that were added or modified
+		// - itemsToRemove, a clone of the original, trimmed down to only contain items that are no longer in the source (that is, items that were deleted)
+		
+		List<Todo> original = (List<Todo>) getEntityList();
 
-		// we need the full list because that's what this resource is and because it's
-		// what we'll use to compare with the shadow to find any changes we need to
-		// send back to the client in a patch...so we need this resource.
-		// Unfortunately, it's a database hit (or a cache hit) to do it.
-		// There's really no way around this, but perhaps caching around the repository
-		// will make it better.
-		List<Todo> allTodos = (List<Todo>) getEntityList();
-		
-		// get source as JsonNode of all Todo items
-		List<Todo> source = deepCloneList(allTodos);
+		List<Todo> source = deepCloneList(original);
+
+		// get shadow from session / calculate it if it isn't in session 
+//		List<Todo> shadow = (List<Todo>) shadowStore.getShadow("/todos/shadow");
+		List<Todo> shadow = (List<Todo>) session.getAttribute("/todos/shadow");
 		if (shadow == null) {
 			shadow = deepCloneList(source);
 		}
 
-		// Don't bother applying patch if there's nothing in the patch.
 		if (jsonPatch.size() > 0) {
-	
-			// apply patch to shadow
 			shadow = (List<Todo>) jsonPatch.apply(shadow);
-	
-			// apply patch to source
 			source = (List<Todo>) jsonPatch.apply(source);
-	
-	
-			// convert patched source back to a set of actual Todo items
-			System.out.println(source.getClass().getName());
-			List<Todo> patchedTodos = deepCloneList(source);
+
+			List<Todo> itemsToSave = new ArrayList<Todo>(source);
+			itemsToSave.removeAll(original);
 			
-			
-			// determine which items are modified/added and should be saved
-			List<Todo> itemsToSave = new ArrayList<Todo>(patchedTodos);
-			System.out.println("BEFORE:  " + itemsToSave);
-			
-			itemsToSave.removeAll(allTodos);
-			
-			// save the modified/added items
 			if (itemsToSave.size() > 0) {
-				System.out.println("AFTER:  " + itemsToSave);
 				todoRepository.save(itemsToSave);
 			}
 	
 			// REMOVE ITEMS
-			Set<Todo> itemsToRemove = new LinkedHashSet<Todo>(allTodos);
-			for (Todo candidate : allTodos) {
-				for (Todo todo : patchedTodos) {
+			List<Todo> itemsToRemove = deepCloneList(original);
+			for (Todo candidate : original) {
+				for (Todo todo : source) {
 					if (samenessTest.isSame(candidate, todo)) {
 						itemsToRemove.remove(candidate);
 						break;
@@ -119,22 +102,21 @@ public class TodoPatchController {
 		// between the source and the shadow so we can communicate those changes to
 		// the client (and then updating the shadow accordingly).
 		
+				
+		// diff shadow against source to calcuate returnPatch
+		JsonNode returnPatch = new JsonDiff().diff(shadow, source);
 		
-		// TODO: Implement diff so that we can uncomment the following lines
+		// apply return patch to shadow
+		shadow = (List<Todo>) JsonPatch.fromJsonNode(returnPatch).apply(shadow);
 		
-//		// diff shadow against source to calcuate returnPatch
-//		JsonNode returnPatch = JsonDiff.asJson(shadow, source);
-//		
-//		// apply return patch to shadow
-//		shadow = JsonPatch.fromJson(returnPatch).apply(shadow);
-//		
-//		// update session with new shadow
+		// update session with new shadow
 //		shadowStore.putShadow("/todos/shadow", shadow);
+		session.setAttribute("/todos/shadow", shadow);
 		
 		// return returnPatch
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(new MediaType("application", "json-patch+json"));
-		ResponseEntity<String> responseEntity = new ResponseEntity<String>("[]", headers, HttpStatus.OK);
+		ResponseEntity<JsonNode> responseEntity = new ResponseEntity<JsonNode>(returnPatch, headers, HttpStatus.OK);
 		
 		return responseEntity;
 	}

@@ -85,12 +85,14 @@ public abstract class JsonPatchOperation {
 	public void setValue(Object target, String valueJson) {
 		try {
 			Object currentValue = spelExpression.getValue(target);
-			Object value = MAPPER.readValue(valueJson, currentValue.getClass());
+			Class<?> currentType = currentValue != null ? currentValue.getClass() : Object.class;
+			Object value = MAPPER.readValue(valueJson, currentType);
 			
 			spelExpression.setValue(target, value);
 		} catch (SpelEvaluationException e) {
 			throw new JsonPatchException("Unable to set path '" + path + "' to value " + valueJson);
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new JsonPatchException("Unable to set path '" + path + "' to value " + valueJson);
 		}
 	}

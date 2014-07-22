@@ -16,6 +16,8 @@
 
 package hello;
 
+import hello.jsonpatch.JsonPatchMethodArgumentResolver;
+
 import java.util.ArrayList;
 import java.util.List;
 

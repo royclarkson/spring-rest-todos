@@ -1,6 +1,5 @@
 package hello;
 
-import static java.util.Arrays.*;
 import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -10,7 +9,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Test;
@@ -154,7 +152,7 @@ public class TodoPatchControllerTest {
 				.accept(JSON_PATCH)
 				.contentType(JSON_PATCH))
 			.andExpect(status().isOk())
-			.andExpect(content().string("[]"))
+			.andExpect(content().string("[{\"op\":\"test\",\"path\":\"/3/id\"},{\"op\":\"replace\",\"path\":\"/3/id\",\"value\":\"4\"}]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
 		List<Todo> all = (List<Todo>) repository.findAll();
@@ -290,10 +288,6 @@ public class TodoPatchControllerTest {
 	// private helpers
 	//
 
-	private HashSet<Todo> asSet(Todo... todos) {
-		return new HashSet<Todo>(asList(todos));
-	}
-
 	private String resource(String name) throws IOException {
 		ClassPathResource resource = new ClassPathResource("/hello/" + name + ".json");
 		BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()));
@@ -304,18 +298,9 @@ public class TodoPatchControllerTest {
 		return builder.toString();
 	}
 
-
 	private TodoRepository todoRepository() {
-//		TodoRepository todoRepository = mock(TodoRepository.class);
-//		List<Todo> todos = new ArrayList<Todo>();
-//		todos.add(new Todo(1L, "A", false));
-//		todos.add(new Todo(2L, "B", false));
-//		todos.add(new Todo(3L, "C", false));
-//		when(todoRepository.findAll()).thenReturn(todos);
 		return repository;
 	}
-
-
 
 	private MockMvc mockMvc(TodoRepository todoRepository) {
 		ShadowStore<Object> shadowStore = new MapBasedShadowStore();

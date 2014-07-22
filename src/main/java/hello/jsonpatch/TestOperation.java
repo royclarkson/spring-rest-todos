@@ -35,10 +35,15 @@ public class TestOperation extends JsonPatchOperation {
 	void perform(Object targetObject) {
 		Object targetValue = getValue(targetObject);
 		
+		// targetValue could be null
+		
 		try {
 			// TODO: This conversion will prove useful in other operations, so it should probably be made part of the parent type
 			ObjectMapper mapper = new ObjectMapper();
-			Object comparisonValue = mapper.readValue(value.toString(), targetValue.getClass());
+			
+			Class<?> targetType = targetValue != null ? targetValue.getClass() : Object.class;
+			
+			Object comparisonValue = value != null ? mapper.readValue(value.toString(), targetType) : null;
 			if (!ObjectUtils.nullSafeEquals(comparisonValue, targetValue)) {
 				throw new JsonPatchException("Test against path '" + path + "' failed");
 			}

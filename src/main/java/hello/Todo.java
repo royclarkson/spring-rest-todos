@@ -43,6 +43,10 @@ public class Todo implements Serializable {
 
 	private boolean complete;
 
+	public void setId(Long id) {
+		this.id = id;
+	}
+	
 	public Long getId() {
 		return id;
 	}
