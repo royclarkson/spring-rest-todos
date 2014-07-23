@@ -47,11 +47,11 @@ dependencies {
 
 task wrapper(type: Wrapper) { gradleVersion = "1.11" }
 
-task npmInstall(type:Exec) {
+task clientInstall(type:Exec) {
 	logging.captureStandardOutput LogLevel.INFO
 	logging.captureStandardError LogLevel.LIFECYCLE
 	workingDir './src/main/resources/public'
-	commandLine 'npm', 'install'
+	commandLine 'bower', 'install'
 }
 
-war.dependsOn npmInstall
+war.dependsOn clientInstall
