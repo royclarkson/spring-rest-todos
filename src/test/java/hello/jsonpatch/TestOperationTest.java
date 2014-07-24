@@ -36,6 +36,18 @@ public class TestOperationTest {
 		TestOperation test = new TestOperation("/0/complete", "true");
 		test.perform(todos);
 	}
+	
+	@Test
+	public void testListElementEquals() throws Exception {
+		List<Todo> todos = new ArrayList<Todo>();
+		todos.add(new Todo(1L, "A", false));
+		todos.add(new Todo(2L, "B", true));
+		todos.add(new Todo(3L, "C", false));
+		
+		TestOperation test = new TestOperation("/1", "{\"id\":2,\"description\":\"B\",\"complete\":true}");
+		test.perform(todos);
+
+	}
 
 	// TODO: Test list elements
 	

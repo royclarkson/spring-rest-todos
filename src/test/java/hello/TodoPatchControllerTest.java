@@ -152,7 +152,7 @@ public class TodoPatchControllerTest {
 				.accept(JSON_PATCH)
 				.contentType(JSON_PATCH))
 			.andExpect(status().isOk())
-			.andExpect(content().string("[{\"op\":\"test\",\"path\":\"/3/id\"},{\"op\":\"replace\",\"path\":\"/3/id\",\"value\":\"4\"}]"))
+			.andExpect(content().string("[{\"op\":\"test\",\"path\":\"/3/id\"},{\"op\":\"add\",\"path\":\"/3/id\",\"value\":4}]"))
 			.andExpect(content().contentType(JSON_PATCH));
 
 		List<Todo> all = (List<Todo>) repository.findAll();

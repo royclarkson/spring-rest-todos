@@ -18,13 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class JsonPatchTest {
 
 	@Test
-	public void fromJsonNode() throws Exception {
-		JsonPatch patch = readJsonPatch("/hello/patch-many-successful-operations.json");
-		assertEquals(5, patch.size());
-		
-	}
-
-	@Test
 	public void manySuccessfulOperations() throws Exception {
 		// initial Todo list
 		List<Todo> todos = new ArrayList<Todo>();
@@ -36,14 +29,14 @@ public class JsonPatchTest {
 		todos.add(new Todo(6L, "F", false));
 		
 		JsonPatch patch = readJsonPatch("/hello/patch-many-successful-operations.json");
-		assertEquals(5, patch.size());
+		assertEquals(6, patch.size());
 
 		List<Todo> patchedTodos = (List<Todo>) patch.apply(todos);
 		
 		assertEquals(6, todos.size());
-		assertTrue(todos.get(1).isComplete());
-		assertEquals("C", todos.get(3).getDescription());
-		assertEquals("A", todos.get(4).getDescription());
+		assertTrue(patchedTodos.get(1).isComplete());
+		assertEquals("C", patchedTodos.get(3).getDescription());
+		assertEquals("A", patchedTodos.get(4).getDescription());
 	}
 
 	@Test

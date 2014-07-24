@@ -59,7 +59,6 @@ public class JsonDiff {
 					patch.add(opNode("add", path + "/" + (revisedPosition + offset), toJsonString(lines.get(offset)), null));
 				}
 			} else if (type == TYPE.DELETE) {
-				System.out.println(delta);
 				List<?> lines = delta.getOriginal().getLines();
 				for(int offset = 0; offset < lines.size(); offset++) {
 					Object originalObject = original.get(revisedPosition + offset);
@@ -81,8 +80,13 @@ public class JsonDiff {
 			if (isPrimitive(modified)) {
 				String modValue = modified != null ? toJsonString(modified) : null;
 				String origValue = original != null ? toJsonString(original) : null;
+				
 				patch.add(opNode("test", path, origValue, null));
-				patch.add(opNode("replace", path, modValue, null));
+				if (origValue == null) {
+					patch.add(opNode("add", path, modValue, null));
+				} else {
+					patch.add(opNode("replace", path, modValue, null));					
+				}
 				return;
 			}
 						
@@ -110,7 +114,12 @@ public class JsonDiff {
 		opNode.set("op", nodeFactory.textNode(op));
 		opNode.set("path", nodeFactory.textNode(path));
 		if (value != null) {
-			opNode.set("value", nodeFactory.textNode(value));
+			try {
+				opNode.set("value", MAPPER.readTree(value));
+			} catch (Exception e) {
+				// TODO : DEAL WITH THIS EXCEPTION BETTER
+				System.out.println(e);
+			}
 		}
 		if (from != null) {
 			opNode.set("from", nodeFactory.textNode(from));
