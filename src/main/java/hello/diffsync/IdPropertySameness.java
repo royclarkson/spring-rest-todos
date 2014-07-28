@@ -1,4 +1,4 @@
-package hello;
+package hello.diffsync;
 
 import java.lang.reflect.Field;
 

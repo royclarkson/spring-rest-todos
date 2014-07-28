@@ -12,5 +12,9 @@ public class JsonPatchException extends RuntimeException {
 	public JsonPatchException(String message) {
 		super(message);
 	}
+	
+	public JsonPatchException(String message, Exception e) {
+		super(message, e);
+	}
 
 }

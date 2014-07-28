@@ -7,8 +7,7 @@ import java.util.List;
 
 import org.springframework.util.ObjectUtils;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -26,19 +25,23 @@ public class JsonDiff {
 	
 	private JsonNodeFactory nodeFactory = new JsonNodeFactory(true);;
 
-	public JsonNode diff(Object original, Object modified) throws Exception {
-		ArrayNode patch = nodeFactory.arrayNode();
-		
-		if (original instanceof List && modified instanceof List) {
-			diffList(patch, "", (List<?>) original, (List<?>) modified);
-		} else {
-			diffNonList(patch, "", original, modified);
+	public JsonNode diff(Object original, Object modified) throws JsonPatchException {
+		try {
+			ArrayNode patch = nodeFactory.arrayNode();
+			
+			if (original instanceof List && modified instanceof List) {
+				diffList(patch, "", (List<?>) original, (List<?>) modified);
+			} else {
+				diffNonList(patch, "", original, modified);
+			}
+			
+			return patch;
+		} catch (Exception e) {
+			throw new JsonPatchException("Error performing diff:", e);
 		}
-		
-		return patch;
 	}
 	
-	private void diffList(ArrayNode patch, String path, List<?> original, List<?> modified) throws Exception {
+	private void diffList(ArrayNode patch, String path, List<?> original, List<?> modified) throws IOException, IllegalAccessException {
 	
 		Patch diff = DiffUtils.diff(original, modified);
 		List<Delta> deltas = diff.getDeltas();
@@ -69,7 +72,7 @@ public class JsonDiff {
 		}
 	}
 	
-	private void diffNonList(ArrayNode patch, String path, Object original, Object modified) throws Exception {
+	private void diffNonList(ArrayNode patch, String path, Object original, Object modified) throws IOException, IllegalAccessException {
 		
 		if (!ObjectUtils.nullSafeEquals(original, modified)) {
 			if (modified == null) {
@@ -103,7 +106,7 @@ public class JsonDiff {
 		
 	}
 
-	private String toJsonString(Object modified) throws IOException, JsonGenerationException, JsonMappingException {
+	private String toJsonString(Object modified) throws IOException, JsonProcessingException {
 		StringWriter writer = new StringWriter();
 		MAPPER.writeValue(writer,  modified);
 		return writer.toString();

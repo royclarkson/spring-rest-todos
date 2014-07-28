@@ -1,12 +1,15 @@
-package hello;
+package hello.diffsync;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Component;
 
 @Component
-public class MapBasedShadowStore implements ShadowStore<Object> {
+@Scope(value="session", proxyMode=ScopedProxyMode.TARGET_CLASS)
+public class MapBasedShadowStore implements ShadowStore {
 
 	private Map<String, Object> store = new HashMap<String, Object>();
 	

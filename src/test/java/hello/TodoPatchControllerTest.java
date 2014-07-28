@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.*;
+import hello.diffsync.MapBasedShadowStore;
+import hello.diffsync.ShadowStore;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -303,7 +305,7 @@ public class TodoPatchControllerTest {
 	}
 
 	private MockMvc mockMvc(TodoRepository todoRepository) {
-		ShadowStore<Object> shadowStore = new MapBasedShadowStore();
+		ShadowStore shadowStore = new MapBasedShadowStore();
 		TodoPatchController controller = new TodoPatchController(todoRepository, shadowStore);
 		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
 		messageConverters.add(new MappingJackson2HttpMessageConverter());
