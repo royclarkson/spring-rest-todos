@@ -1,11 +1,5 @@
 package hello;
 
-import hello.diffsync.DiffSync;
-import hello.diffsync.PersistenceStrategy;
-import hello.diffsync.ShadowStore;
-import hello.jsonpatch.JsonPatch;
-import hello.jsonpatch.JsonPatchException;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -17,6 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.patch.diffsync.DiffSync;
+import org.springframework.web.patch.diffsync.PersistenceStrategy;
+import org.springframework.web.patch.diffsync.ShadowStore;
+import org.springframework.web.patch.jsonpatch.JsonPatch;
+import org.springframework.web.patch.jsonpatch.JsonPatchException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 

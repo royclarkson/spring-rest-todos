@@ -16,8 +16,6 @@
 
 package hello;
 
-import hello.jsonpatch.JsonPatchMethodArgumentResolver;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,10 +24,15 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Scope;
+import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.filter.ShallowEtagHeaderFilter;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.web.patch.diffsync.MapBasedShadowStore;
+import org.springframework.web.patch.diffsync.ShadowStore;
+import org.springframework.web.patch.jsonpatch.JsonPatchMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 @ComponentScan
@@ -55,6 +58,12 @@ public class Application extends WebMvcConfigurerAdapter {
 	@Bean
 	public ShallowEtagHeaderFilter etagFilter() {
 		return new ShallowEtagHeaderFilter();
+	}
+	
+	@Bean
+	@Scope(value="session", proxyMode=ScopedProxyMode.TARGET_CLASS)
+	public ShadowStore shadowStore() {
+		return new MapBasedShadowStore();
 	}
 	
 }

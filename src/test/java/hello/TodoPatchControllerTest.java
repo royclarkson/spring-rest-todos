@@ -4,8 +4,6 @@ import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.*;
-import hello.diffsync.MapBasedShadowStore;
-import hello.diffsync.ShadowStore;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,6 +22,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.patch.diffsync.MapBasedShadowStore;
+import org.springframework.web.patch.diffsync.ShadowStore;
+import org.springframework.web.patch.jsonpatch.JsonPatchMethodArgumentResolver;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes=EmbeddedDataSourceConfig.class)
@@ -310,7 +311,7 @@ public class TodoPatchControllerTest {
 		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
 		messageConverters.add(new MappingJackson2HttpMessageConverter());
 		MockMvc mvc = standaloneSetup(controller)
-				.setCustomArgumentResolvers(new hello.jsonpatch.JsonPatchMethodArgumentResolver(messageConverters))
+				.setCustomArgumentResolvers(new JsonPatchMethodArgumentResolver(messageConverters))
 				.build();
 		return mvc;
 	}

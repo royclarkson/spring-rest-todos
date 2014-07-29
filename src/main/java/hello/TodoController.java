@@ -30,12 +30,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonpatch.JsonPatch;
-import com.github.fge.jsonpatch.JsonPatchException;
-import com.github.fge.jsonpatch.diff.JsonDiff;
-
 /**
  * @author Roy Clarkson
  * @author Craig Walls
@@ -47,12 +41,9 @@ public class TodoController {
 
 	private TodoRepository repository;
 
-	private ObjectMapper objectMapper;
-
 	@Autowired
-	public TodoController(TodoRepository repository, ObjectMapper objectMapper) {
+	public TodoController(TodoRepository repository) {
 		this.repository = repository;
-		this.objectMapper = objectMapper;
 	}
 
 	@RequestMapping(method = RequestMethod.GET, produces = "application/json")
@@ -70,7 +61,7 @@ public class TodoController {
 	@RequestMapping(value = "/{id}", method = RequestMethod.PUT, consumes = "application/json")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Transactional
-	public void update(@RequestBody Todo updatedTodo, @PathVariable("id") long id) throws IOException, JsonPatchException {
+	public void update(@RequestBody Todo updatedTodo, @PathVariable("id") long id) throws IOException {
 		if (id != updatedTodo.getId()) {
 			repository.delete(id);
 		}
@@ -81,22 +72,6 @@ public class TodoController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable("id") long id) {
 		repository.delete(id);
-	}
-
-	@RequestMapping(value = "/diff", method = RequestMethod.POST, consumes = "application/json", produces = {
-			"application/json", "application/json-patch+json" })
-	public JsonNode diff(@RequestBody JsonNode data) {
-		JsonNode source = data.get("source");
-		JsonNode target = data.get("target");
-		return JsonDiff.asJson(source, target);
-	}
-
-	@RequestMapping(value = "/patch", method = RequestMethod.POST, consumes = "application/json", produces = {
-			"application/json", "application/json-patch+json" })
-	public JsonNode patch(@RequestBody JsonNode data) throws IOException, JsonPatchException {
-		JsonNode source = data.get("source");
-		JsonPatch patch = JsonPatch.fromJson(data.get("patch"));
-		return patch.apply(source);
 	}
 
 }
