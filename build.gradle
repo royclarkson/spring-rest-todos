@@ -3,7 +3,7 @@ buildscript {
 		maven { url "http://repo.spring.io/libs-release" }
 		mavenLocal()
 	}
-	dependencies { classpath("org.springframework.boot:spring-boot-gradle-plugin:1.0.1.RELEASE") }
+	dependencies { classpath("org.springframework.boot:spring-boot-gradle-plugin:1.1.4.RELEASE") }
 }
 
 apply plugin: "java"
@@ -46,7 +46,7 @@ dependencies {
 	testCompile("com.jayway.jsonpath:json-path-assert:0.8.1")
 }
 
-task wrapper(type: Wrapper) { gradleVersion = "1.11" }
+task wrapper(type: Wrapper) { gradleVersion = "2.0" }
 
 task clientInstall(type:Exec) {
 	logging.captureStandardOutput LogLevel.INFO

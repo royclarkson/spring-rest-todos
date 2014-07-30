@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.patch.diffsync.DiffSync;
-import org.springframework.web.patch.diffsync.PersistenceStrategy;
 import org.springframework.web.patch.diffsync.ShadowStore;
 import org.springframework.web.patch.jsonpatch.JsonPatch;
 import org.springframework.web.patch.jsonpatch.JsonPatchException;
@@ -39,26 +38,9 @@ public class TodoPatchController {
 			consumes={"application/json", "application/json-patch+json"}, 
 			produces={"application/json", "application/json-patch+json"})
 	public ResponseEntity<JsonNode> patch(JsonPatch jsonPatch) throws JsonPatchException, IOException, Exception {
-
-		PersistenceStrategy<List<Todo>> persistence = new PersistenceStrategy<List<Todo>>() {
-			@Override
-			public List<Todo> save(List<Todo> t) {
-				return (List<Todo>) todoRepository.save(t);
-			}
-			
-			@Override
-			public List<Todo> find() {
-				return (List<Todo>) todoRepository.findAll();
-			}
-			
-			@Override
-			public void delete(List<Todo> t) {
-				todoRepository.delete(t);
-			}
-		};
-		DiffSync<Todo> sync = new DiffSync<Todo>(jsonPatch, shadowStore, persistence, Todo.class);
-		
-		JsonNode returnPatch = sync.apply();
+		List<Todo> todos = (List<Todo>) todoRepository.findAll();
+		DiffSync<Todo> sync = new DiffSync<Todo>(jsonPatch, shadowStore, todoRepository, Todo.class);
+		JsonNode returnPatch = sync.apply(todos);
 
 		// return returnPatch
 		HttpHeaders headers = new HttpHeaders();
@@ -67,5 +49,5 @@ public class TodoPatchController {
 		
 		return responseEntity;
 	}
-
+	
 }
