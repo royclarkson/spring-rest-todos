@@ -26,10 +26,13 @@ public class TodoPatchController {
 
 	// Should be session-scoped or otherwise unique to each client
 	private ShadowStore shadowStore;
+
+	private JpaPersistenceCallback<Todo> persistenceCallback;
 	
 	@Autowired
 	public TodoPatchController(TodoRepository todoRepository, ShadowStore shadowStore) {
 		this.todoRepository = todoRepository;
+		this.persistenceCallback = new JpaPersistenceCallback<Todo>(todoRepository);
 		this.shadowStore = shadowStore;
 	}
 	
@@ -39,7 +42,7 @@ public class TodoPatchController {
 			produces={"application/json", "application/json-patch+json"})
 	public ResponseEntity<JsonNode> patch(JsonPatch jsonPatch) throws JsonPatchException, IOException, Exception {
 		List<Todo> todos = (List<Todo>) todoRepository.findAll();
-		DiffSync<Todo> sync = new DiffSync<Todo>(jsonPatch, shadowStore, todoRepository, Todo.class);
+		DiffSync<Todo> sync = new DiffSync<Todo>(jsonPatch, shadowStore, persistenceCallback, Todo.class);
 		JsonNode returnPatch = sync.apply(todos);
 
 		// return returnPatch
