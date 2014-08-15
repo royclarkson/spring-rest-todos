@@ -27,21 +27,14 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.filter.ShallowEtagHeaderFilter;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.patch.diffsync.MapBasedShadowStore;
 import org.springframework.web.patch.diffsync.PersistenceCallback;
 import org.springframework.web.patch.diffsync.PersistenceCallbackRegistry;
 import org.springframework.web.patch.diffsync.ShadowStore;
-import org.springframework.web.patch.diffsync.web.DiffSyncController;
-import org.springframework.web.patch.jsonpatch.JsonPatchMethodArgumentResolver;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 @ComponentScan
 @EnableAutoConfiguration
-public class Application extends WebMvcConfigurerAdapter {
+public class Application {
 
 	public static void main(String[] args) {
 		ApplicationContext ctx = SpringApplication.run(Application.class, args);
@@ -51,19 +44,6 @@ public class Application extends WebMvcConfigurerAdapter {
 		repository.save(new Todo(3L, "c", false));
 	}
 
-	
-	@Override
-	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
-		List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
-		messageConverters.add(new MappingJackson2HttpMessageConverter());
-		argumentResolvers.add(new JsonPatchMethodArgumentResolver(messageConverters));
-	}
-
-	@Bean
-	public ShallowEtagHeaderFilter etagFilter() {
-		return new ShallowEtagHeaderFilter();
-	}
-	
 	@Bean
 	@Scope(value="session", proxyMode=ScopedProxyMode.TARGET_CLASS)
 	public ShadowStore shadowStore() {
@@ -81,11 +61,6 @@ public class Application extends WebMvcConfigurerAdapter {
 		List<PersistenceCallback<?>> callbacks = new ArrayList<PersistenceCallback<?>>();
 		callbacks.add(jpaCallback);
 		return new PersistenceCallbackRegistry(callbacks);
-	}
-	
-	@Bean
-	public DiffSyncController diffSyncController(PersistenceCallbackRegistry callbackRegistry, ShadowStore shadowStore) {
-		return new DiffSyncController(callbackRegistry, shadowStore);
 	}
 	
 }
