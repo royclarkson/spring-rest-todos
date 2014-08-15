@@ -7,7 +7,7 @@ A simple todo list example built with Spring
 ## Build and Run
 
 > **NOTE:**
-> This project now depends on org.springframework:spring-patch:0.5.0.RELEASE. This project is not (yet) in any known Maven repository. Therefore, you'll need to clone it from https://github.com/habuma/spring-patch and do 'gradle build install' to get it into your local repository.
+> This project now depends on org.springframework:spring-sync:0.5.0.RELEASE. This project is not (yet) in any known Maven repository. Therefore, you'll need to clone it from https://github.com/habuma/spring-sync and do 'gradle build install' to get it into your local repository.
 
 ```sh
 ./gradlew clean build bootRun
