@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Greg L. Turnquist
  */
 @RestController
-@RequestMapping("/todos")
+@RequestMapping("/api/todos")
 public class TodoController {
 
 	private TodoRepository repository;
