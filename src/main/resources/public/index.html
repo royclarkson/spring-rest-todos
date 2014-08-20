@@ -1,28 +1,31 @@
 <!doctype html>
 <html data-debug>
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Fabulous Spring REST Todos</title>
-    <!--<link rel="stylesheet" href="base.css"/>-->
+    <link rel="stylesheet" charset="utf-8" href="base.css"/>
     <script src="bower_components/rave/rave.js"></script>
 </head>
 <body>
 
-<section>
-    <h2>Your Todos</h2>
+<section class="todo-app">
     <form class="create-todo" onsubmit="controller.add">
-        <input name="description" placeholder="Add a todo" autofocus/>
+        <button type="button" class="toggle complete-all" onclick="controller.completeAll"></button>
+        <input type="text" name="description" placeholder="Add a todo" autofocus/>
         <input name="complete" type="checkbox" disabled style="display: none"/>
-        <button type="submit">Add</button>
-        <button type="button" onclick="controller.completeAll">Complete all</button>
-        <button type="button" onclick="controller.removeCompleted">Remove completed</button>
+        <fieldset>
+            <button type="submit">&#65291;</button>
+            <button type="button" onclick="controller.removeCompleted">&darr;</button>
+        </fieldset>
     </form>
 
-    <ul data-model="controller.todos">
-        <li data-list>
+    <ul data-model="controller.todos" class="todo-list">
+        <li data-list class="todo-item">
             <input type="hidden" name="id"/>
-            <input type="checkbox" name="complete"/>
-            <input name="description"/>
-            <span onclick="controller.remove">&times;</span>
+            <input class="toggle" type="checkbox" name="complete"/>
+            <input type="text" name="description"/>
+            <span class="remove" onclick="controller.remove">&times;</span>
         </li>
     </ul>
 
