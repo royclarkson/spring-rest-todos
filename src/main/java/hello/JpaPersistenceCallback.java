@@ -2,22 +2,23 @@ package hello;
 
 import java.util.List;
 
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.web.patch.diffsync.PersistenceCallback;
 
 class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
 	
-	private final CrudRepository<T, Long> repo;
+	private final PagingAndSortingRepository<T, Long> repo;
 	private Class<T> entityType;
 
-	public JpaPersistenceCallback(CrudRepository<T, Long> repo, Class<T> entityType) {
+	public JpaPersistenceCallback(PagingAndSortingRepository<T, Long> repo, Class<T> entityType) {
 		this.repo = repo;
 		this.entityType = entityType;
 	}
 	
 	@Override
 	public List<T> findAll() {
-		return (List<T>) repo.findAll();
+		return (List<T>) repo.findAll(new Sort("id"));
 	}
 	
 	@Override
