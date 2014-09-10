@@ -9,13 +9,13 @@ exports.main = fab.run(document.body, todosApp);
 function todosApp(node, context) {
 	context.controller = new TodosController([]);
 
-	var getClient = rest.at('/todos');
+	var todosClient = rest.at('/todos');
 	var patchClient = rest.at('/sync/todos');
 
 	Document.sync([
 		Document.fromPatchRemote(function(patch) {
 			return patchClient.patch({ entity: patch });
-		}, getClient.get()),
+		}, todosClient.get()),
 		Document.fromProperty('todos', context.controller)
 	]);
 }
