@@ -13,7 +13,7 @@ function todosApp(node, context) {
 	var patchClient = rest.at('/sync/todos');
 
 	Document.sync([
-		Document.fromPatchRemote(function(patch) {
+		Document.fromPatchSyncRemote(function(patch) {
 			return patchClient.patch({ entity: patch });
 		}, todosClient.get()),
 		Document.fromProperty('todos', context.controller)
