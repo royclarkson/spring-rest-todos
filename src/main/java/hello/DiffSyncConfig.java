@@ -3,9 +3,9 @@ package hello;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.repository.PagingAndSortingRepository;
-import org.springframework.web.patch.diffsync.PersistenceCallbackRegistry;
-import org.springframework.web.patch.diffsync.config.DiffSyncConfigurerAdapter;
-import org.springframework.web.patch.diffsync.config.EnableDifferentialSynchronization;
+import org.springframework.sync.diffsync.PersistenceCallbackRegistry;
+import org.springframework.sync.diffsync.config.DiffSyncConfigurerAdapter;
+import org.springframework.sync.diffsync.config.EnableDifferentialSynchronization;
 
 @Configuration
 @EnableDifferentialSynchronization

@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.PagingAndSortingRepository;
-import org.springframework.web.patch.diffsync.PersistenceCallback;
+import org.springframework.sync.diffsync.PersistenceCallback;
 
 class JpaPersistenceCallback<T> implements PersistenceCallback<T> {
 	

@@ -16,16 +16,21 @@
 
 package hello;
 
+import java.util.List;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.sync.diffsync.web.JsonPatchHttpMessageConverter;
 import org.springframework.web.filter.ShallowEtagHeaderFilter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 @ComponentScan
 @EnableAutoConfiguration
-public class Application {
+public class Application extends WebMvcConfigurerAdapter {
 
 	public static void main(String[] args) {
 		ApplicationContext ctx = SpringApplication.run(Application.class, args);
@@ -40,4 +45,9 @@ public class Application {
 		return new ShallowEtagHeaderFilter();
 	}
 
+	@Override
+	public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+		converters.add(new JsonPatchHttpMessageConverter());
+	}
+	
 }
