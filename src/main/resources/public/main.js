@@ -4,7 +4,7 @@ var Document = require('fabulous/Document');
 
 var TodosController = require('./TodosController');
 
-exports.main = fab.run(document.body, todosApp);
+exports.main = fab.run(todosApp);
 
 function todosApp(node, context) {
 	context.controller = new TodosController([]);
@@ -15,7 +15,7 @@ function todosApp(node, context) {
 	Document.sync([
 		Document.fromPatchSyncRemote(function(patch) {
 			return patchClient.patch({ entity: patch });
-		}, todosClient.get()),
+		}, todosClient.get().entity()),
 		Document.fromProperty('todos', context.controller)
 	]);
 }
