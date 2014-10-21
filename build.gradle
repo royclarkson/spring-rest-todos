@@ -22,10 +22,10 @@ jar {
 }
 
 repositories {
+	mavenLocal()
 	mavenCentral()
     maven { url "http://repo.spring.io/libs-snapshot" }
 	maven { url "http://repo.spring.io/libs-release" }
-	mavenLocal()
 }
 
 dependencies {
